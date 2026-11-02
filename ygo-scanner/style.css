@@ -209,11 +209,9 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 5px; font-si
 .cm-box { display: grid; gap: 8px; }
 .cm-box .price { margin: 0; }
 
-.regions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.regions .meta { flex-basis: 100%; font-size: .85rem; }
-.region {
-  appearance: none; border: 1px solid var(--panel-2); background: var(--panel-2); color: var(--text);
-  font: inherit; font-size: .85rem; font-weight: 700; padding: 6px 10px; border-radius: 999px; cursor: pointer;
-  min-width: 42px;
+.seller-filter { display: flex; align-items: center; gap: 10px; }
+.seller-filter .meta { white-space: nowrap; font-size: .9rem; }
+.seller-select {
+  flex: 1; min-width: 0; background: var(--panel-2); color: var(--text); border: 1px solid var(--panel-2);
+  border-radius: 10px; padding: 9px 10px; font: inherit;
 }
-.region.on { background: var(--accent); border-color: var(--accent); color: #0f2a22; }
