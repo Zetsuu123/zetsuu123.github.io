@@ -4,7 +4,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '1.4';
+  const APP_VERSION = '1.5';
   const API = 'https://db.ygoprodeck.com/api/v7/';
   const CARD_RATIO = 59 / 86; // width / height of a Yu-Gi-Oh! card
 
@@ -486,6 +486,10 @@
     return c ? `${url}&sellerCountry=${c[0]}` : url;
   }
 
+  function cmProductUrl(idProduct) {
+    return withSellerFilter(`https://www.cardmarket.com/${cmLang()}/YuGiOh/Products?idProduct=${idProduct}`);
+  }
+
   function cmSearchUrl(query) {
     return withSellerFilter(`https://www.cardmarket.com/${cmLang()}/YuGiOh/Products/Search?searchString=${encodeURIComponent(query)}`);
   }
@@ -550,23 +554,36 @@
       return;
     }
 
-    // Cardmarket's search understands set codes, so search for exactly this printing.
+    // Until the product index answers, offer Cardmarket's search for the set code.
     box.innerHTML = `
-      <p class="price cm-price" hidden></p>
       ${sellerSelectHtml()}
-      <a class="btn gold" href="${cmSearchUrl(code)}" target="_blank" rel="noopener">Open ${escapeHtml(code)} on Cardmarket</a>
+      <div class="cm-links">
+        <a class="btn gold" href="${cmSearchUrl(code)}" target="_blank" rel="noopener">Open ${escapeHtml(code)} on Cardmarket</a>
+      </div>
       ${allVersions}`;
 
-    // Show this printing's Cardmarket price when the code maps to a single product.
     let groups = [];
     try { groups = await cmProducts(code, card.name); } catch { groups = []; }
     if (token !== renderToken) return; // a newer result is on screen
     const products = groups.flatMap((g) => g.products);
+    if (!products.length) return;
+    const links = box.querySelector('.cm-links');
+    const searchCode = `<a class="btn" href="${cmSearchUrl(code)}" target="_blank" rel="noopener">Search ${escapeHtml(code)} on Cardmarket</a>`;
+
     if (products.length === 1) {
-      const [, low, trend] = products[0];
-      const el = box.querySelector('.cm-price');
-      el.innerHTML = `Cardmarket: from <strong>${euro(low)}</strong> · trend <strong>${euro(trend)}</strong>`;
-      el.hidden = false;
+      // Direct link to the product page: keeps the seller-country filter (the search page drops it).
+      const [id, low, trend] = products[0];
+      links.innerHTML = `
+        <p class="price">Cardmarket: from <strong>${euro(low)}</strong> · trend <strong>${euro(trend)}</strong></p>
+        <a class="btn gold" href="${cmProductUrl(id)}" target="_blank" rel="noopener">Open ${escapeHtml(code)} on Cardmarket</a>`;
+    } else {
+      links.innerHTML = groups.map((g) => `
+        <p class="meta versions-note">Cardmarket lists <strong>${g.products.length} versions</strong> of this card in
+        <em>${escapeHtml(g.setName)}</em> (different prints / rarities). Open the one that matches yours:</p>
+        <ul class="versions">${g.products.map(([id, low, trend], i) => `
+          <li><a class="version" href="${cmProductUrl(id)}" target="_blank" rel="noopener">
+            <span>Option ${i + 1}</span><small>from ${euro(low)} · trend ${euro(trend)}</small></a></li>`).join('')}
+        </ul>`).join('') + searchCode;
     }
   }
 
