@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -22,14 +23,17 @@ import androidx.webkit.WebViewAssetLoader;
 import java.util.Arrays;
 
 /**
- * Hosts the YGO Scanner web app (bundled in assets/www) in a WebView.
- * The assets are served from https://appassets.androidplatform.net so the page is a
- * secure context and can use the camera (getUserMedia).
+ * Hosts the YGO Scanner web app in a WebView.
+ * It loads the live site, so app updates arrive without reinstalling the APK. When the site
+ * can't be reached (offline), it falls back to the copy bundled in assets/www, served from
+ * https://appassets.androidplatform.net so the page is a secure context and can use the camera.
  */
 public class MainActivity extends Activity {
 
+    private static final String LIVE_HOST = "zetsuu123.github.io";
+    private static final String LIVE_URL = "https://" + LIVE_HOST + "/ygo-scanner/";
     private static final String APP_HOST = "appassets.androidplatform.net";
-    private static final String START_URL = "https://" + APP_HOST + "/assets/www/index.html";
+    private static final String OFFLINE_URL = "https://" + APP_HOST + "/assets/www/index.html";
     private static final int REQ_CAMERA = 1;
     private static final int REQ_FILE = 2;
 
@@ -57,6 +61,7 @@ public class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
+        s.setUserAgentString(s.getUserAgentString() + " YGOScannerApp/" + BuildConfig.VERSION_NAME);
 
         web.setWebViewClient(new WebViewClient() {
             @Override
@@ -65,9 +70,19 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                // Live site unreachable (e.g. offline): use the bundled copy.
+                if (request.isForMainFrame() && LIVE_HOST.equals(request.getUrl().getHost())) {
+                    view.loadUrl(OFFLINE_URL);
+                }
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 if (APP_HOST.equals(uri.getHost())) return false;
+                if (LIVE_HOST.equals(uri.getHost()) && uri.getPath() != null
+                        && uri.getPath().startsWith("/ygo-scanner/") && !uri.getPath().endsWith(".apk")) return false;
                 // Cardmarket and other links open in the browser / Cardmarket app.
                 openExternal(uri);
                 return true;
@@ -97,7 +112,7 @@ public class MainActivity extends Activity {
         if (savedInstanceState != null) {
             web.restoreState(savedInstanceState);
         } else {
-            web.loadUrl(START_URL);
+            web.loadUrl(LIVE_URL);
         }
     }
 

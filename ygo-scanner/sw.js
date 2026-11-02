@@ -1,8 +1,8 @@
 /* Service worker: makes the app installable and loads it fast / offline.
- * App files: network-first (so updates show up), falling back to cache.
+ * App files: network-first, always revalidated (so updates show up), falling back to cache.
  * OCR engine + language data from the CDN: cache-first (large, versioned).
  * Card API calls are never cached here. */
-const VERSION = 'ygo-scanner-v1';
+const VERSION = 'ygo-scanner-v2';
 const SHELL = [
   './', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
@@ -27,7 +27,8 @@ self.addEventListener('fetch', (e) => {
 
   if (url.origin === location.origin) {
     e.respondWith(
-      fetch(req)
+      // no-cache: always ask the server (skips the browser's HTTP cache) so updates show up right away
+      fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
         .then((res) => {
           if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req, copy)); }
           return res;
