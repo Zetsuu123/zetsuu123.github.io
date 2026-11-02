@@ -4,7 +4,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '1.3';
+  const APP_VERSION = '1.4';
   const API = 'https://db.ygoprodeck.com/api/v7/';
   const CARD_RATIO = 59 / 86; // width / height of a Yu-Gi-Oh! card
 
@@ -469,8 +469,45 @@
   /* ------------------------------------------------------------------ */
   const cmLang = () => els.cmLang.value || 'en';
 
+  // Cardmarket's "seller country" filter ids (numbered alphabetically by ISO country code).
+  const SELLER_COUNTRIES = {
+    AT: [1, 'Austria'], BE: [2, 'Belgium'], BG: [3, 'Bulgaria'], CH: [4, 'Switzerland'], CY: [5, 'Cyprus'],
+    CZ: [6, 'Czech Republic'], DE: [7, 'Germany'], DK: [8, 'Denmark'], EE: [9, 'Estonia'], ES: [10, 'Spain'],
+    FI: [11, 'Finland'], FR: [12, 'France'], GB: [13, 'United Kingdom'], GR: [14, 'Greece'], HU: [15, 'Hungary'],
+    IE: [16, 'Ireland'], IT: [17, 'Italy'], LI: [18, 'Liechtenstein'], LT: [19, 'Lithuania'], LU: [20, 'Luxembourg'],
+    LV: [21, 'Latvia'], MT: [22, 'Malta'], NL: [23, 'Netherlands'], NO: [24, 'Norway'], PL: [25, 'Poland'],
+    PT: [26, 'Portugal'], RO: [27, 'Romania'], SE: [28, 'Sweden'], SG: [29, 'Singapore'], SI: [30, 'Slovenia'],
+    SK: [31, 'Slovakia'],
+  };
+  const sellerCountry = () => store.get('sellerCountry', '');
+
+  function withSellerFilter(url) {
+    const c = SELLER_COUNTRIES[sellerCountry()];
+    return c ? `${url}&sellerCountry=${c[0]}` : url;
+  }
+
   function cmSearchUrl(query) {
-    return `https://www.cardmarket.com/${cmLang()}/YuGiOh/Products/Search?searchString=${encodeURIComponent(query)}`;
+    return withSellerFilter(`https://www.cardmarket.com/${cmLang()}/YuGiOh/Products/Search?searchString=${encodeURIComponent(query)}`);
+  }
+
+  // Update the Cardmarket links already on screen after a setting changed.
+  function refreshCmLinks() {
+    els.result.querySelectorAll('a[href*="cardmarket.com/"]').forEach((a) => {
+      const u = new URL(a.href);
+      u.pathname = u.pathname.replace(/^\/[a-z]{2}\//, `/${cmLang()}/`);
+      u.searchParams.delete('sellerCountry');
+      const c = SELLER_COUNTRIES[sellerCountry()];
+      if (c) u.searchParams.set('sellerCountry', c[0]);
+      a.href = u.toString();
+    });
+  }
+
+  function sellerSelectHtml() {
+    const cur = sellerCountry();
+    const opts = Object.entries(SELLER_COUNTRIES).sort((x, y) => x[1][1].localeCompare(y[1][1]))
+      .map(([code, [, name]]) => `<option value="${code}"${code === cur ? ' selected' : ''}>${name}</option>`).join('');
+    return `<label class="seller-filter"><span class="meta">Sellers from</span>
+      <select class="seller-select"><option value=""${cur ? '' : ' selected'}>Any country</option>${opts}</select></label>`;
   }
 
   // Set code -> Cardmarket product index, built weekly by tools/build_cm_index.py
@@ -501,55 +538,24 @@
 
   const euro = (v) => (v == null ? '–' : '€' + Number(v).toFixed(2));
 
-  // Card languages printed in set codes (TCG). Old one-letter codes map to the same languages.
-  const REGIONS_LIST = ['EN', 'DE', 'FR', 'IT', 'SP', 'PT'];
-  const OLD_REGION = { E: 'EN', G: 'DE', F: 'FR', I: 'IT', S: 'SP', P: 'PT' };
-  function regionOf(detected) {
-    const d = /^[A-Z0-9]{2,5}-([A-Z0-9]{3,6})$/i.exec((detected || '').toUpperCase());
-    if (!d) return null;
-    const r = d[1].slice(0, -3);
-    const reg = OLD_REGION[r] || r;
-    return REGIONS_LIST.includes(reg) ? reg : null;
-  }
-
-  async function renderCardmarket(box, card, code, token, detected) {
+  async function renderCardmarket(box, card, code, token) {
     const allVersions = `<a class="btn" href="${cmSearchUrl(card.name)}" target="_blank" rel="noopener">All versions of ${escapeHtml(card.name)}</a>`;
 
     if (!code) {
       const cmPrice = card.card_prices?.[0]?.cardmarket_price;
       box.innerHTML = `
         ${cmPrice && Number(cmPrice) > 0 ? `<p class="price">Cardmarket trend: <strong>€${escapeHtml(cmPrice)}</strong> <small class="meta">(cheapest version)</small></p>` : ''}
+        ${sellerSelectHtml()}
         <a class="btn gold" href="${cmSearchUrl(card.name)}" target="_blank" rel="noopener">Open on Cardmarket</a>`;
       return;
     }
 
-    // Cardmarket's search understands set codes, so search for exactly this printing,
-    // in the card language picked below (LOB-EN001 -> LOB-DE001 for a German card).
-    const m = /^([A-Z0-9]+)-EN([A-Z0-9]{3})$/i.exec(code);
-    const region = m ? (regionOf(detected) || store.get('region', 'EN')) : null;
+    // Cardmarket's search understands set codes, so search for exactly this printing.
     box.innerHTML = `
       <p class="price cm-price" hidden></p>
-      ${m ? `<div class="regions" role="group" aria-label="Card language">
-        <span class="meta">Card language</span>
-        ${REGIONS_LIST.map((r) => `<button type="button" class="region${r === region ? ' on' : ''}" data-r="${r}" aria-pressed="${r === region}">${r}</button>`).join('')}
-      </div>` : ''}
-      <a class="btn gold cm-code" target="_blank" rel="noopener"></a>
+      ${sellerSelectHtml()}
+      <a class="btn gold" href="${cmSearchUrl(code)}" target="_blank" rel="noopener">Open ${escapeHtml(code)} on Cardmarket</a>
       ${allVersions}`;
-    const link = box.querySelector('.cm-code');
-    const setRegion = (r) => {
-      const c = m ? `${m[1]}-${r}${m[2]}`.toUpperCase() : code;
-      link.href = cmSearchUrl(c);
-      link.textContent = `Open ${c} on Cardmarket`;
-      box.querySelectorAll('.region').forEach((b) => {
-        b.classList.toggle('on', b.dataset.r === r);
-        b.setAttribute('aria-pressed', String(b.dataset.r === r));
-      });
-    };
-    setRegion(region);
-    box.querySelectorAll('.region').forEach((b) => b.addEventListener('click', () => {
-      store.set('region', b.dataset.r);
-      setRegion(b.dataset.r);
-    }));
 
     // Show this printing's Cardmarket price when the code maps to a single product.
     let groups = [];
@@ -860,7 +866,7 @@
     }
 
     const token = ++renderToken;
-    renderCardmarket(els.result.querySelector('.cm-box'), card, code, token, hit.detected);
+    renderCardmarket(els.result.querySelector('.cm-box'), card, code, token);
 
     addHistory({ id: card.id, name: card.name, code: code || '', setName, img });
     els.result.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -920,10 +926,12 @@
   els.cmLang.value = store.get('cmLang', 'en');
   els.cmLang.addEventListener('change', () => {
     store.set('cmLang', els.cmLang.value);
-    // refresh links in the visible result
-    els.result.querySelectorAll('a[href*="cardmarket.com/"]').forEach((a) => {
-      a.href = a.href.replace(/cardmarket\.com\/[a-z]{2}\//, `cardmarket.com/${els.cmLang.value}/`);
-    });
+    refreshCmLinks();
+  });
+  els.result.addEventListener('change', (e) => {
+    if (!e.target.classList.contains('seller-select')) return;
+    store.set('sellerCountry', e.target.value);
+    refreshCmLinks();
   });
 
   window.addEventListener('resize', layoutGuide);
