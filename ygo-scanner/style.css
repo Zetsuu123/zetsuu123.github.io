@@ -193,6 +193,8 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 5px; font-si
 #historyList .h-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #historyList .h-code { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; color: var(--gold); }
 
+.get-app { text-align: center; margin: 0 16px 8px; }
+
 .foot { text-align: center; color: var(--muted); font-size: .75rem; padding: 8px 16px 24px; }
 .foot a { color: var(--muted); }
 

@@ -853,9 +853,12 @@
   // Warm up OCR in the background so the first scan is quick.
   window.addEventListener('load', () => setTimeout(() => getWorker().then(() => { if (!busy) setStatus(''); }).catch(() => {}), 300));
 
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  const inAndroidApp = location.hostname === 'appassets.androidplatform.net';
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !inAndroidApp) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+  // Offer the APK to Android users of the website.
+  if (!inAndroidApp && /Android/i.test(navigator.userAgent)) $('getApp').hidden = false;
 
   // exposed for testing
   window.__ygo = { extractCodes, setCodeVariants, parseSetCode, cmSlug, findTextLines, componentsOf, cropRegion, REGIONS };

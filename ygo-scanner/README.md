@@ -7,6 +7,8 @@ reads the **set code** (e.g. `LOB-EN001`) or the 8-digit **passcode**, and opens
 Live at: **https://zetsuu123.github.io/ygo-scanner/**
 
 ## Install on your phone
+- **Android app (APK):** download [`ygo-scanner.apk`](ygo-scanner.apk) and open it (allow *Install unknown apps*).
+  Source in [`../android`](../android).
 - **Android (Chrome):** open the link → menu ⋮ → *Install app* / *Add to Home screen*.
 - **iPhone (Safari):** open the link → Share → *Add to Home Screen*.
 
