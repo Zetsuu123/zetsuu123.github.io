@@ -472,10 +472,6 @@
     return `https://www.cardmarket.com/${cmLang()}/YuGiOh/Products/Search?searchString=${encodeURIComponent(query)}`;
   }
 
-  function cmProductUrl(idProduct) {
-    return `https://www.cardmarket.com/${cmLang()}/YuGiOh/Products?idProduct=${idProduct}`;
-  }
-
   // Set code -> Cardmarket product index, built weekly by tools/build_cm_index.py
   // from Cardmarket's public catalog. One small JSON file per set prefix (LOB.json, MAGO.json, ...).
   const DATA_BASE = location.hostname === 'appassets.androidplatform.net'
@@ -505,31 +501,32 @@
   const euro = (v) => (v == null ? '–' : '€' + Number(v).toFixed(2));
 
   async function renderCardmarket(box, card, code, token) {
-    let groups = [];
-    try { groups = code ? await cmProducts(code, card.name) : []; } catch { groups = []; }
-    if (token !== renderToken) return; // a newer result is on screen
     const allVersions = `<a class="btn" href="${cmSearchUrl(card.name)}" target="_blank" rel="noopener">All versions of ${escapeHtml(card.name)}</a>`;
-    const total = groups.reduce((n, g) => n + g.products.length, 0);
 
-    if (total === 1) {
-      const [id, low, trend] = groups[0].products[0];
-      box.innerHTML = `
-        <p class="price">Cardmarket: from <strong>${euro(low)}</strong> · trend <strong>${euro(trend)}</strong></p>
-        <a class="btn gold" href="${cmProductUrl(id)}" target="_blank" rel="noopener">Open ${escapeHtml(code)} on Cardmarket</a>
-        ${allVersions}`;
-    } else if (total > 1) {
-      box.innerHTML = groups.map((g) => `
-        <p class="meta versions-note">Cardmarket lists <strong>${g.products.length} versions</strong> of this card in
-        <em>${escapeHtml(g.setName)}</em> (different prints / rarities). Open the one that matches yours:</p>
-        <ul class="versions">${g.products.map(([id, low, trend], i) => `
-          <li><a class="version" href="${cmProductUrl(id)}" target="_blank" rel="noopener">
-            <span>Option ${i + 1}</span><small>from ${euro(low)} · trend ${euro(trend)}</small></a></li>`).join('')}
-        </ul>`).join('') + allVersions;
-    } else {
+    if (!code) {
       const cmPrice = card.card_prices?.[0]?.cardmarket_price;
       box.innerHTML = `
         ${cmPrice && Number(cmPrice) > 0 ? `<p class="price">Cardmarket trend: <strong>€${escapeHtml(cmPrice)}</strong> <small class="meta">(cheapest version)</small></p>` : ''}
         <a class="btn gold" href="${cmSearchUrl(card.name)}" target="_blank" rel="noopener">Open on Cardmarket</a>`;
+      return;
+    }
+
+    // Cardmarket's search understands set codes, so search for exactly this printing.
+    box.innerHTML = `
+      <p class="price cm-price" hidden></p>
+      <a class="btn gold" href="${cmSearchUrl(code)}" target="_blank" rel="noopener">Open ${escapeHtml(code)} on Cardmarket</a>
+      ${allVersions}`;
+
+    // Show this printing's Cardmarket price when the code maps to a single product.
+    let groups = [];
+    try { groups = await cmProducts(code, card.name); } catch { groups = []; }
+    if (token !== renderToken) return; // a newer result is on screen
+    const products = groups.flatMap((g) => g.products);
+    if (products.length === 1) {
+      const [, low, trend] = products[0];
+      const el = box.querySelector('.cm-price');
+      el.innerHTML = `Cardmarket: from <strong>${euro(low)}</strong> · trend <strong>${euro(trend)}</strong>`;
+      el.hidden = false;
     }
   }
 
