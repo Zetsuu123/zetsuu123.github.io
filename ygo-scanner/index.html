@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>YGO Card Scanner</title>
+  <meta name="description" content="Scan Yu-Gi-Oh! cards with your phone camera and look them up on Cardmarket.">
+  <meta name="theme-color" content="#14121f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="YGO Scanner">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>YGO Scanner</h1>
+    <label class="lang" title="Cardmarket language">
+      <span class="sr-only">Cardmarket language</span>
+      <select id="cmLang">
+        <option value="en">EN</option>
+        <option value="de">DE</option>
+        <option value="fr">FR</option>
+        <option value="it">IT</option>
+        <option value="es">ES</option>
+      </select>
+    </label>
+  </header>
+
+  <main>
+    <section class="scanner" aria-label="Camera scanner">
+      <div class="viewer" id="viewer">
+        <video id="video" playsinline muted autoplay></video>
+        <div class="guide" id="guide" aria-hidden="true">
+          <div class="zone zone-set"><span>set code</span></div>
+          <div class="zone zone-pass"><span>passcode</span></div>
+        </div>
+        <div class="viewer-msg" id="viewerMsg">
+          <p>Point your camera at a Yu-Gi-Oh! card and fit it inside the frame.</p>
+          <button class="btn primary" id="startCam" type="button">Start camera</button>
+        </div>
+        <div class="status" id="status" hidden></div>
+        <button class="icon-btn torch" id="torchBtn" type="button" hidden aria-label="Toggle flashlight">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M7 2h10v5l-2 3v12H9V10L7 7V2zm2 2v2.4l2 3V20h2V9.4l2-3V4H9z"/></svg>
+        </button>
+      </div>
+
+      <div class="controls">
+        <button class="btn primary big" id="scanBtn" type="button" disabled>Scan card</button>
+        <label class="toggle">
+          <input type="checkbox" id="autoScan">
+          <span>Auto</span>
+        </label>
+        <label class="btn ghost" id="uploadLbl">
+          Photo
+          <input type="file" id="fileInput" accept="image/*" capture="environment" hidden>
+        </label>
+      </div>
+      <p class="hint">Hold the card flat and fill the frame. Good light helps. The set code (e.g. <code>LOB-EN001</code>) sits just under the artwork on the right.</p>
+    </section>
+
+    <form class="manual" id="manualForm" autocomplete="off">
+      <input id="manualInput" type="text" inputmode="text" autocapitalize="characters" spellcheck="false"
+             placeholder="Type set code, passcode or card name">
+      <button class="btn" type="submit">Search</button>
+    </form>
+
+    <section class="result" id="result" aria-live="polite" hidden></section>
+
+    <section class="history" id="historySection" hidden>
+      <div class="history-head">
+        <h2>Recent scans</h2>
+        <button class="link-btn" id="clearHistory" type="button">Clear</button>
+      </div>
+      <ul id="historyList"></ul>
+    </section>
+  </main>
+
+  <footer class="foot">
+    Card data from <a href="https://ygoprodeck.com/api-guide/" target="_blank" rel="noopener">YGOPRODeck</a>.
+    OCR by <a href="https://tesseract.projectnaptha.com/" target="_blank" rel="noopener">Tesseract.js</a>, runs on your phone.
+    Not affiliated with Konami or Cardmarket.
+  </footer>
+
+  <canvas id="work" hidden></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
