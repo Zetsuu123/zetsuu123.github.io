@@ -4,7 +4,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '1.2';
+  const APP_VERSION = '1.3';
   const API = 'https://db.ygoprodeck.com/api/v7/';
   const CARD_RATIO = 59 / 86; // width / height of a Yu-Gi-Oh! card
 
@@ -501,7 +501,18 @@
 
   const euro = (v) => (v == null ? '–' : '€' + Number(v).toFixed(2));
 
-  async function renderCardmarket(box, card, code, token) {
+  // Card languages printed in set codes (TCG). Old one-letter codes map to the same languages.
+  const REGIONS_LIST = ['EN', 'DE', 'FR', 'IT', 'SP', 'PT'];
+  const OLD_REGION = { E: 'EN', G: 'DE', F: 'FR', I: 'IT', S: 'SP', P: 'PT' };
+  function regionOf(detected) {
+    const d = /^[A-Z0-9]{2,5}-([A-Z0-9]{3,6})$/i.exec((detected || '').toUpperCase());
+    if (!d) return null;
+    const r = d[1].slice(0, -3);
+    const reg = OLD_REGION[r] || r;
+    return REGIONS_LIST.includes(reg) ? reg : null;
+  }
+
+  async function renderCardmarket(box, card, code, token, detected) {
     const allVersions = `<a class="btn" href="${cmSearchUrl(card.name)}" target="_blank" rel="noopener">All versions of ${escapeHtml(card.name)}</a>`;
 
     if (!code) {
@@ -512,11 +523,33 @@
       return;
     }
 
-    // Cardmarket's search understands set codes, so search for exactly this printing.
+    // Cardmarket's search understands set codes, so search for exactly this printing,
+    // in the card language picked below (LOB-EN001 -> LOB-DE001 for a German card).
+    const m = /^([A-Z0-9]+)-EN([A-Z0-9]{3})$/i.exec(code);
+    const region = m ? (regionOf(detected) || store.get('region', 'EN')) : null;
     box.innerHTML = `
       <p class="price cm-price" hidden></p>
-      <a class="btn gold" href="${cmSearchUrl(code)}" target="_blank" rel="noopener">Open ${escapeHtml(code)} on Cardmarket</a>
+      ${m ? `<div class="regions" role="group" aria-label="Card language">
+        <span class="meta">Card language</span>
+        ${REGIONS_LIST.map((r) => `<button type="button" class="region${r === region ? ' on' : ''}" data-r="${r}" aria-pressed="${r === region}">${r}</button>`).join('')}
+      </div>` : ''}
+      <a class="btn gold cm-code" target="_blank" rel="noopener"></a>
       ${allVersions}`;
+    const link = box.querySelector('.cm-code');
+    const setRegion = (r) => {
+      const c = m ? `${m[1]}-${r}${m[2]}`.toUpperCase() : code;
+      link.href = cmSearchUrl(c);
+      link.textContent = `Open ${c} on Cardmarket`;
+      box.querySelectorAll('.region').forEach((b) => {
+        b.classList.toggle('on', b.dataset.r === r);
+        b.setAttribute('aria-pressed', String(b.dataset.r === r));
+      });
+    };
+    setRegion(region);
+    box.querySelectorAll('.region').forEach((b) => b.addEventListener('click', () => {
+      store.set('region', b.dataset.r);
+      setRegion(b.dataset.r);
+    }));
 
     // Show this printing's Cardmarket price when the code maps to a single product.
     let groups = [];
@@ -827,7 +860,7 @@
     }
 
     const token = ++renderToken;
-    renderCardmarket(els.result.querySelector('.cm-box'), card, code, token);
+    renderCardmarket(els.result.querySelector('.cm-box'), card, code, token, hit.detected);
 
     addHistory({ id: card.id, name: card.name, code: code || '', setName, img });
     els.result.scrollIntoView({ behavior: 'smooth', block: 'start' });
