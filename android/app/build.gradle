@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The app is the same web app as https://zetsuu123.github.io/ygo-scanner/,
+// copied from ../../ygo-scanner into the APK's assets at build time.
+def webSrc = rootProject.file('../ygo-scanner')
+def webOut = layout.buildDirectory.dir('generated/webAssets')
+
+tasks.register('syncWebAssets', Sync) {
+    from(webSrc) {
+        exclude 'README.md', 'sw.js', '*.apk'
+    }
+    into(webOut.map { it.dir('www') })
+}
+
+android {
+    namespace 'io.github.zetsuu123.ygoscanner'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'io.github.zetsuu123.ygoscanner'
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '1.0'
+    }
+
+    sourceSets {
+        main.assets.srcDirs += webOut
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Signed with the debug key so the APK can be sideloaded without extra setup.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.named('preBuild') { dependsOn 'syncWebAssets' }
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.14.0'
+}
