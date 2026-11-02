@@ -14,6 +14,12 @@ tasks.register('syncWebAssets', Sync) {
     into(webOut.map { it.dir('www') })
 }
 
+// Play Store upload key: read from android/keystore.properties (never committed).
+// Without it, release builds fall back to the debug key (fine for sideloading).
+def keystoreFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystoreFile.exists()) { keystoreFile.withInputStream { keystoreProps.load(it) } }
+
 android {
     namespace 'io.github.zetsuu123.ygoscanner'
     compileSdk 36
@@ -22,7 +28,7 @@ android {
         applicationId 'io.github.zetsuu123.ygoscanner'
         minSdk 24
         targetSdk 36
-        versionCode 3
+        versionCode 4
         versionName '1.2'
     }
 
@@ -30,11 +36,27 @@ android {
         main.assets.srcDirs += webOut
     }
 
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            upload {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
-            // Signed with the debug key so the APK can be sideloaded without extra setup.
+            signingConfig keystoreFile.exists() ? signingConfigs.upload : signingConfigs.debug
+        }
+        // Sideload APK for the website: always the debug key, so it keeps installing over earlier APKs.
+        sideload {
+            initWith release
             signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
         }
     }
 
