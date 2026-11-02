@@ -4,6 +4,7 @@
 (() => {
   'use strict';
 
+  const APP_VERSION = '1.2';
   const API = 'https://db.ygoprodeck.com/api/v7/';
   const CARD_RATIO = 59 / 86; // width / height of a Yu-Gi-Oh! card
 
@@ -474,7 +475,7 @@
 
   // Set code -> Cardmarket product index, built weekly by tools/build_cm_index.py
   // from Cardmarket's public catalog. One small JSON file per set prefix (LOB.json, MAGO.json, ...).
-  const DATA_BASE = location.hostname === 'appassets.androidplatform.net'
+  const DATA_BASE = location.hostname === 'appassets.androidplatform.net' // offline copy inside the APK
     ? 'https://zetsuu123.github.io/ygo-scanner/data/cm/'
     : 'data/cm/';
   const shardCache = new Map();
@@ -902,8 +903,11 @@
   // Warm up OCR in the background so the first scan is quick.
   window.addEventListener('load', () => setTimeout(() => getWorker().then(() => { if (!busy) setStatus(''); }).catch(() => {}), 300));
 
-  const inAndroidApp = location.hostname === 'appassets.androidplatform.net';
-  if ('serviceWorker' in navigator && location.protocol === 'https:' && !inAndroidApp) {
+  // The Android app loads the live site (UA contains "YGOScannerApp"), or its bundled offline copy.
+  const bundledCopy = location.hostname === 'appassets.androidplatform.net';
+  const inAndroidApp = bundledCopy || /YGOScannerApp/.test(navigator.userAgent);
+  $('appVersion').textContent = 'v' + APP_VERSION + (inAndroidApp ? ' · Android app' : '') + (bundledCopy ? ' (offline copy)' : '');
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !bundledCopy) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
   // Offer the APK to Android users of the website.
