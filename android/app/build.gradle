@@ -9,7 +9,7 @@ def webOut = layout.buildDirectory.dir('generated/webAssets')
 
 tasks.register('syncWebAssets', Sync) {
     from(webSrc) {
-        exclude 'README.md', 'sw.js', '*.apk'
+        exclude 'README.md', 'sw.js', '*.apk', 'data/**'
     }
     into(webOut.map { it.dir('www') })
 }
@@ -22,8 +22,8 @@ android {
         applicationId 'io.github.zetsuu123.ygoscanner'
         minSdk 24
         targetSdk 36
-        versionCode 1
-        versionName '1.0'
+        versionCode 2
+        versionName '1.1'
     }
 
     sourceSets {

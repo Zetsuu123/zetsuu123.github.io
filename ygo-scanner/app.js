@@ -472,15 +472,62 @@
     return `https://www.cardmarket.com/${cmLang()}/YuGiOh/Products/Search?searchString=${encodeURIComponent(query)}`;
   }
 
-  function cmSlug(s) {
-    return s.normalize('NFKD').replace(/[̀-ͯ]/g, '')
-      .replace(/['’"!?.,:;()#&/\\@*]/g, '')
-      .trim().replace(/\s+/g, '-').replace(/-+/g, '-');
+  // Set code -> Cardmarket product index, built weekly by tools/build_cm_index.py
+  // from Cardmarket's public catalog. One small JSON file per set prefix (LOB.json, MAGO.json, ...).
+  const DATA_BASE = location.hostname === 'appassets.androidplatform.net'
+    ? 'https://zetsuu123.github.io/ygo-scanner/data/cm/'
+    : 'data/cm/';
+  const shardCache = new Map();
+  function cmShard(prefix) {
+    if (!shardCache.has(prefix)) {
+      const p = fetch(DATA_BASE + encodeURIComponent(prefix) + '.json')
+        .then((r) => (r.ok ? r.json() : {}));
+      p.catch(() => shardCache.delete(prefix));
+      shardCache.set(prefix, p);
+    }
+    return shardCache.get(prefix);
   }
 
-  // Best-effort direct link to a printing; Cardmarket uses /Products/Singles/<Set-Name>/<Card-Name>.
-  function cmPrintingUrl(cardName, setName) {
-    return `https://www.cardmarket.com/${cmLang()}/YuGiOh/Products/Singles/${cmSlug(setName)}/${cmSlug(cardName)}`;
+  // -> [{ setName, products: [[idProduct, low, trend], ...] }]
+  async function cmProducts(code, cardName) {
+    const up = code.toUpperCase();
+    const shard = await cmShard(up.split('-')[0]);
+    let entries = shard[up] || [];
+    const same = entries.filter((e) => e[0].toLowerCase() === cardName.toLowerCase());
+    if (same.length) entries = same;
+    return entries.map((e) => ({ setName: e[1], products: e[2] }));
+  }
+
+  const euro = (v) => (v == null ? '–' : '€' + Number(v).toFixed(2));
+
+  async function renderCardmarket(box, card, code, token) {
+    const allVersions = `<a class="btn" href="${cmSearchUrl(card.name)}" target="_blank" rel="noopener">All versions of ${escapeHtml(card.name)}</a>`;
+
+    if (!code) {
+      const cmPrice = card.card_prices?.[0]?.cardmarket_price;
+      box.innerHTML = `
+        ${cmPrice && Number(cmPrice) > 0 ? `<p class="price">Cardmarket trend: <strong>€${escapeHtml(cmPrice)}</strong> <small class="meta">(cheapest version)</small></p>` : ''}
+        <a class="btn gold" href="${cmSearchUrl(card.name)}" target="_blank" rel="noopener">Open on Cardmarket</a>`;
+      return;
+    }
+
+    // Cardmarket's search understands set codes, so search for exactly this printing.
+    box.innerHTML = `
+      <p class="price cm-price" hidden></p>
+      <a class="btn gold" href="${cmSearchUrl(code)}" target="_blank" rel="noopener">Open ${escapeHtml(code)} on Cardmarket</a>
+      ${allVersions}`;
+
+    // Show this printing's Cardmarket price when the code maps to a single product.
+    let groups = [];
+    try { groups = await cmProducts(code, card.name); } catch { groups = []; }
+    if (token !== renderToken) return; // a newer result is on screen
+    const products = groups.flatMap((g) => g.products);
+    if (products.length === 1) {
+      const [, low, trend] = products[0];
+      const el = box.querySelector('.cm-price');
+      el.innerHTML = `Cardmarket: from <strong>${euro(low)}</strong> · trend <strong>${euro(trend)}</strong>`;
+      el.hidden = false;
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -732,6 +779,7 @@
     }
   }
 
+  let renderToken = 0;
   function showCard(hit) {
     const { card, code, passcode } = hit;
     const img = card.card_images?.[0]?.image_url_small || '';
@@ -739,7 +787,6 @@
     const printings = code ? sets.filter((s) => s.set_code.toUpperCase() === code.toUpperCase()) : [];
     const setName = hit.setName || printings[0]?.set_name || '';
     const rarities = [...new Set(printings.map((s) => s.set_rarity))];
-    const cmPrice = card.card_prices?.[0]?.cardmarket_price;
     const typeLine = [card.humanReadableCardType || card.type, card.attribute, card.race]
       .filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' · ');
 
@@ -755,13 +802,12 @@
                     <p class="meta">${escapeHtml(setName)}</p>` : ''}
           ${passcode ? `<p class="meta">Passcode <span class="code-pill">${escapeHtml(passcode)}</span></p>` : ''}
           ${rarities.length ? `<div class="rarities">${rarities.map((r) => `<span>${escapeHtml(r)}</span>`).join('')}</div>` : ''}
-          ${cmPrice && Number(cmPrice) > 0 ? `<p class="price">Cardmarket trend: <strong>€${escapeHtml(cmPrice)}</strong><br><small class="meta">cheapest version, may differ for this printing</small></p>` : ''}
         </div>
       </div>
       <div class="actions">
-        <a class="btn gold" href="${cmSearchUrl(card.name)}" target="_blank" rel="noopener">Open on Cardmarket</a>
-        ${setName && code ? `<a class="btn" href="${cmPrintingUrl(card.name, setName)}" target="_blank" rel="noopener">This printing on Cardmarket (${escapeHtml(code.split('-')[0])})</a>` : ''}
-        ${!code && sets.length ? `<details><summary class="meta">${sets.length} printings</summary><ul class="pick-list printings"></ul></details>` : ''}
+        <div class="cm-box"><p class="meta"><span class="spinner"></span> Finding it on Cardmarket…</p></div>
+        ${!code && sets.length ? `<p class="meta">Pick your printing (code under the artwork) to get its exact Cardmarket page:</p>
+          <details open><summary class="meta">${sets.length} printings</summary><ul class="pick-list printings"></ul></details>` : ''}
       </div>
       ${hit.detected && hit.detected !== code ? `<p class="detected">Read as: ${escapeHtml(hit.detected)}</p>` : ''}`;
 
@@ -778,6 +824,9 @@
         pl.appendChild(li);
       }
     }
+
+    const token = ++renderToken;
+    renderCardmarket(els.result.querySelector('.cm-box'), card, code, token);
 
     addHistory({ id: card.id, name: card.name, code: code || '', setName, img });
     els.result.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -861,5 +910,5 @@
   if (!inAndroidApp && /Android/i.test(navigator.userAgent)) $('getApp').hidden = false;
 
   // exposed for testing
-  window.__ygo = { extractCodes, setCodeVariants, parseSetCode, cmSlug, findTextLines, componentsOf, cropRegion, REGIONS };
+  window.__ygo = { extractCodes, setCodeVariants, parseSetCode, cmProducts, findTextLines, componentsOf, cropRegion, REGIONS };
 })();

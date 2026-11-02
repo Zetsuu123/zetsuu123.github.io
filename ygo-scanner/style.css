@@ -204,3 +204,7 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 5px; font-si
   animation: spin .7s linear infinite; vertical-align: -2px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Cardmarket ---------- */
+.cm-box { display: grid; gap: 8px; }
+.cm-box .price { margin: 0; }
