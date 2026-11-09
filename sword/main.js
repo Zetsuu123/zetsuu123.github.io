@@ -25,7 +25,7 @@ scene.environmentIntensity = 0.8;
 
 const key = new THREE.DirectionalLight(0xffffff, 2.2);
 key.position.set(-2, 3, 4);
-const rim = new THREE.DirectionalLight(0x9fd0ff, 1.6);
+const rim = new THREE.DirectionalLight(0x8fd0ff, 2.2);
 rim.position.set(3, 1, -3);
 scene.add(key, rim);
 
