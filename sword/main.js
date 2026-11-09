@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildRuneblade } from './model.js';
 
 const stage = document.getElementById('stage');
@@ -20,8 +19,28 @@ stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-scene.environmentIntensity = 0.8;
+scene.environment = pmrem.fromScene(studio(), 0.02).texture;
+
+// A dark studio with a few soft-box strips, so polished metal shows crisp
+// highlights against deep reflections instead of a flat grey room.
+function studio() {
+  const room = new THREE.Scene();
+  const box = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), new THREE.MeshBasicMaterial({ color: 0x1b2230, side: THREE.BackSide }));
+  room.add(box);
+  const light = (w, h, intensity, color, pos, look) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(intensity), side: THREE.DoubleSide }));
+    m.position.set(...pos);
+    m.lookAt(...look);
+    room.add(m);
+  };
+  light(6, 2.2, 3.2, 0xffffff, [0, 4.6, 1], [0, 0, 0]); // overhead soft box
+  light(1.1, 7, 4.5, 0xffffff, [-4.6, 0.5, 2.2], [0, 0, 0]); // left strip
+  light(0.8, 7, 3.2, 0xdfefff, [4.6, 0.2, 1.4], [0, 0, 0]); // right strip
+  light(5, 1.6, 2.6, 0x9fd4ff, [0, -1.2, -4.6], [0, 0, 0]); // cool rim from behind
+  light(3, 0.6, 1.4, 0xffffff, [0, -4.6, 2], [0, 0, 0]); // faint floor bounce
+  light(7, 3.2, 1.25, 0xe8f2ff, [0.6, 0.9, 4.95], [0, 0, 0]); // broad front fill behind the viewer
+  return room;
+}
 
 const key = new THREE.DirectionalLight(0xffffff, 2.2);
 key.position.set(-2, 3, 4);
