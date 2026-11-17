@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Index Timing</title>
+  <meta name="description" content="S&P 500 and Nasdaq 100 tracker with buy/sell signals, strategy backtests and seasonality.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231a1a19'/%3E%3Cpath d='M5 22l7-7 5 4 10-10' stroke='%233987e5' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f4f2; --surface: #fcfcfb; --line: #e4e3df; --grid: #ecebe7;
+      --text: #0b0b0b; --text-2: #52514e; --muted: #75746f;
+      --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+      --pos: #2a78d6; --neg: #e34948;
+      --good: #0ca30c; --good-text: #006300; --warn: #fab219; --warn-text: #8a5a00; --bad: #d03b3b; --bad-text: #b02a2a;
+      --chip: #ecebe7; --chip-on: #0b0b0b; --chip-on-text: #fcfcfb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --bg: #121211; --surface: #1a1a19; --line: #2e2e2b; --grid: #262624;
+        --text: #f0efec; --text-2: #c3c2b7; --muted: #9a998f;
+        --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+        --pos: #3987e5; --neg: #e66767;
+        --good: #0ca30c; --good-text: #3fc23f; --warn: #fab219; --warn-text: #fab219; --bad: #d03b3b; --bad-text: #f07a7a;
+        --chip: #262624; --chip-on: #f0efec; --chip-on-text: #121211;
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #121211; --surface: #1a1a19; --line: #2e2e2b; --grid: #262624;
+      --text: #f0efec; --text-2: #c3c2b7; --muted: #9a998f;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+      --pos: #3987e5; --neg: #e66767;
+      --good: #0ca30c; --good-text: #3fc23f; --warn: #fab219; --warn-text: #fab219; --bad: #d03b3b; --bad-text: #f07a7a;
+      --chip: #262624; --chip-on: #f0efec; --chip-on-text: #121211;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-text-size-adjust: 100%; }
+    main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+    a { color: var(--s1); }
+    header.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    header.top h1 { font-size: 1.25rem; margin: 0; letter-spacing: -.01em; }
+    header.top .back { color: var(--muted); font-size: .85rem; text-decoration: none; }
+    .seg { display: inline-flex; background: var(--chip); border-radius: 999px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+    .seg button { border: 0; background: transparent; color: var(--text-2); font: inherit; font-size: .85rem; padding: 5px 12px; border-radius: 999px; cursor: pointer; min-height: 30px; }
+    .seg button[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-text); }
+    .seg button:focus-visible, select:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 16px; min-width: 0; }
+    .card h2 { font-size: 1rem; margin: 0 0 4px; }
+    .card p.note { color: var(--muted); font-size: .82rem; margin: 0 0 14px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid2 > .card { margin-bottom: 0; }
+    .row-gap { margin-bottom: 16px; }
+    @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+
+    .quote { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+    .quote .price { font-size: 2.1rem; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .quote .chg { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .up { color: var(--good-text); } .down { color: var(--bad-text); }
+    .asof { color: var(--muted); font-size: .8rem; }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    .stat { border-top: 1px solid var(--line); padding-top: 8px; }
+    .stat .k { color: var(--muted); font-size: .75rem; }
+    .stat .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+    @media (max-width: 560px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    .verdict { display: flex; align-items: center; gap: 14px; margin: 6px 0 14px; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 1.15rem; border: 2px solid currentColor; }
+    .badge.good { color: var(--good-text); } .badge.bad { color: var(--bad-text); } .badge.warn { color: var(--warn-text); } .badge.neutral { color: var(--text-2); }
+    .verdict .score { color: var(--muted); font-size: .85rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; font-variant-numeric: tabular-nums; }
+    th { text-align: left; color: var(--muted); font-weight: 500; font-size: .75rem; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line); }
+    td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--grid); vertical-align: top; }
+    td.num, th.num { text-align: right; }
+    tr.hl td { background: color-mix(in srgb, var(--s1) 12%, transparent); }
+    tr.click { cursor: pointer; }
+    tr.click:hover td { background: color-mix(in srgb, var(--text) 5%, transparent); }
+    .pts { font-weight: 600; white-space: nowrap; }
+    .tbl-wrap { overflow-x: auto; }
+    @media (max-width: 600px) { td .asof.desc { display: none; } .card { padding: 14px; } table { font-size: .8rem; } th, td { padding-right: 6px; } }
+
+    .chart-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--text-2); }
+    .legend i { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 5px; border-radius: 2px; }
+    .legend .mk { font-style: normal; font-size: .75rem; margin-right: 4px; }
+    .chart { position: relative; width: 100%; touch-action: pan-y; }
+    .chart svg { display: block; width: 100%; overflow: visible; }
+    .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: .78rem; box-shadow: 0 4px 16px rgb(0 0 0 / .18); white-space: nowrap; display: none; z-index: 2; font-variant-numeric: tabular-nums; }
+    .tip b { display: block; margin-bottom: 2px; }
+    .tip .r { display: flex; justify-content: space-between; gap: 14px; color: var(--text-2); }
+    .tip .r span:last-child { color: var(--text); }
+    .axis text { fill: var(--muted); font-size: 11px; }
+    select { font: inherit; font-size: .85rem; background: var(--chip); color: var(--text); border: 0; border-radius: 8px; padding: 6px 10px; }
+    ul.take { margin: 0; padding-left: 18px; }
+    ul.take li { margin-bottom: 6px; }
+    footer { color: var(--muted); font-size: .78rem; margin-top: 24px; line-height: 1.6; }
+    .loading { color: var(--muted); padding: 40px 0; text-align: center; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  </style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div>
+      <a class="back" href="../">← zetsuu123</a>
+      <h1>Index Timing</h1>
+    </div>
+    <div class="seg" id="idx" role="group" aria-label="Index">
+      <button data-k="spx" aria-pressed="true">S&amp;P 500</button>
+      <button data-k="ndx" aria-pressed="false">Nasdaq 100</button>
+    </div>
+  </header>
+
+  <div id="app"><div class="loading">Loading prices…</div></div>
+
+  <footer>
+    Daily closing prices from Yahoo Finance, refreshed after each US trading day. Prices are index levels and exclude dividends; backtests assume trades at the next day's close, no costs or taxes, and 0% return while in cash. Past patterns do not guarantee future results. This page is for learning, not financial advice.
+  </footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

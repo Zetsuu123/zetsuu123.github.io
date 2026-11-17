@@ -1,0 +1,36 @@
+name: Update market data
+
+# Refreshes markets/data (daily S&P 500 and Nasdaq 100 closes) after the US close.
+on:
+  schedule:
+    - cron: '43 21 * * 1-5'   # weekdays 21:43 UTC, after the 16:00 New York close
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: markets-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch prices
+        run: python3 tools/fetch_markets.py
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add markets/data
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Update market data"
+            git push
+          fi
