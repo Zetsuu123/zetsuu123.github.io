@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.github.zetsuu123.voidicons"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@drawable/ic_launcher"
+        android:allowBackup="false"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- How launchers and Theme Park find icon packs -->
+            <intent-filter>
+                <action android:name="org.adw.launcher.THEMES" />
+                <action android:name="com.gau.go.launcherex.theme" />
+                <action android:name="com.novalauncher.THEME" />
+                <action android:name="com.anddoes.launcher.THEME" />
+                <action android:name="com.teslacoilsw.launcher.THEME" />
+                <action android:name="com.dlto.atom.launcher.THEME" />
+                <action android:name="ginlemon.smartlauncher.THEMES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="com.fede.launcher.THEME_ICONPACK" />
+                <category android:name="com.anddoes.launcher.THEME" />
+                <category android:name="com.teslacoilsw.launcher.THEME" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
