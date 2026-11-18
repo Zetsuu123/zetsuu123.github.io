@@ -85,6 +85,9 @@ python3 make_aod.py "$WORK/aod"
 ffmpeg -hide_banner -loglevel error -y -framerate 12 -i "$WORK/aod/f%03d.png" \
   -vf "split[a][b];[a]palettegen=max_colors=96:stats_mode=full[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" \
   -loop 0 "$OUT/void-portal-aod.gif"
+# GitHub serves .gif as an image (it opens instead of downloading), so also ship it zipped
+rm -f "$OUT/void-portal-aod.zip"
+zip -q -j "$OUT/void-portal-aod.zip" "$OUT/void-portal-aod.gif"
 
 echo "== sounds"
 python3 make_sounds.py "$WORK/snd"

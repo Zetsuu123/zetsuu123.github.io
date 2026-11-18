@@ -8,6 +8,7 @@ notification sound, ringtone and a colour palette for Theme Park.
 | `void-icons.apk` | Icon pack app (76 apps). Install it, then import it in Good Lock › Theme Park › Icon › Create new › Icon pack. |
 | `void-icons-png.zip` | The same icons as 512 px PNGs, named by app, for Theme Park › Change icons › Gallery. |
 | `void-portal-aod.gif` | Looping void portal for Lock screen › Always On Display › Clock style › Image. |
+| `void-portal-aod.zip` | The same GIF zipped, so phones download it instead of just showing it. |
 | `void-whisper.ogg` | Notification sound. |
 | `void-call.ogg` | Ringtone (19 s loop). |
 | `preview-icons.png` | All icons on one sheet. |
