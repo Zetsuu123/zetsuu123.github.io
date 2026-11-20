@@ -9,6 +9,7 @@
  * keyParam  query parameter that is part of a product's identity (otherwise only the path is).
  * attr      store-specific data-* attributes on product cards, read before the generic strategy.
  * phonePath regular expression for product URLs that are smartphones (a hint, not required).
+ * aggregator price-comparison site (Skroutz, BestPrice): the price shown is its lowest shop price.
  */
 window.PP_STORES = [
   {
@@ -18,8 +19,21 @@ window.PP_STORES = [
     search: 'https://www.skroutz.gr/search?keyphrase={q+}',
     verified: true,
     product: '^https://www\\.skroutz\\.gr/s/\\d+/',
+    aggregator: true, // price-comparison site: its price is the lowest among its shops
     note: 'Lowest shop price listed on Skroutz',
     color: '#f08a24',
+  },
+  {
+    id: 'bestprice',
+    name: 'BestPrice',
+    home: 'https://www.bestprice.gr/',
+    // search inside the "Κινητά" category: phones only (it may redirect to a model filter page)
+    search: 'https://www.bestprice.gr/cat/806/mobile-phones.html?q={q+}',
+    verified: true,
+    product: '^https://www\\.bestprice\\.gr/item/\\d+/',
+    aggregator: true,
+    note: 'Lowest shop price listed on BestPrice',
+    color: '#00a3d9',
   },
   {
     id: 'public',

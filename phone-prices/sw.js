@@ -1,6 +1,6 @@
 /* Service worker: makes the web version installable and loads it fast / offline.
  * App files: network-first (so updates show up right away), falling back to the cache. */
-const VERSION = 'phone-prices-v1';
+const VERSION = 'phone-prices-v2';
 const SHELL = [
   './', 'index.html', 'style.css', 'app.js', 'stores.js', 'extract.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',

@@ -1,7 +1,7 @@
 {
   "name": "Phone Prices",
   "short_name": "Phone Prices",
-  "description": "Find the cheapest smartphone price across Skroutz, Public, Kotsovolos, Plaisio and Germanos.",
+  "description": "Find the cheapest smartphone price across Skroutz, BestPrice, Public, Kotsovolos, Plaisio and Germanos.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
