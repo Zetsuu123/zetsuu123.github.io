@@ -1,7 +1,7 @@
 # Phone Prices
 
 Search a smartphone once and see the cheapest price across
-**Skroutz, Public, Kotsovolos, Plaisio and Germanos**.
+**Skroutz, BestPrice, Public, Kotsovolos, Plaisio and Germanos**.
 
 Live at: **https://zetsuu123.github.io/phone-prices/** · Android app: [`phone-prices.apk`](phone-prices.apk)
 (source in [`../phone-prices-android`](../phone-prices-android))
@@ -30,7 +30,8 @@ Be specific to narrow the list: `iphone 16 pro 256`, `s25 ultra`, `redmi note 14
   the same as if you opened it yourself, and reads the products from the page (`extract.js`).
   Nothing goes through a server.
 - Prices: the most prominent price on each product card that isn't crossed out, an instalment
-  (`/μήνα`, `δόσεις`) or a saving (`όφελος`). Skroutz shows the lowest price among its shops.
+  (`/μήνα`, `δόσεις`) or a saving (`όφελος`). Skroutz and BestPrice are price-comparison sites:
+  they show the lowest price among their shops.
 - Phones are told apart from accessories by their titles (storage size like `128GB`, no words like
   `θήκη`, `case`, `tempered glass`, `φορτιστής`, `watch`, `tablet`).
 - The same phone from different stores is matched by model and storage, ignoring colour and words like
@@ -41,14 +42,15 @@ Be specific to narrow the list: `iphone 16 pro 256`, `s25 ultra`, `redmi note 14
 | --- | --- |
 | `index.html`, `style.css` | the screen |
 | `app.js` | searching, matching phones across stores, picking the cheapest |
-| `stores.js` | the five stores: search URL, product-link pattern, store-specific hints |
+| `stores.js` | the six stores: search URL, product-link pattern, store-specific hints |
 | `extract.js` | runs inside each store's page and returns the products it shows |
 | `sw.js`, `manifest.webmanifest` | installable web version |
 
 ## When a store stops working
 Store websites change. Each store in `stores.js` has a `search` URL and a `product` link pattern:
 
-- **Search URL**: Germanos (`/search-results/?q=`) and Skroutz (`/search?keyphrase=`) are verified.
+- **Search URL**: Germanos (`/search-results/?q=`), Skroutz (`/search?keyphrase=`) and BestPrice
+  (`/cat/806/mobile-phones.html?q=`, a search inside its phones category) are verified.
   Public, Kotsovolos and Plaisio are best guesses. If one is wrong, the app types the query into that
   store's own search box, then remembers the address it lands on (Filters → *Reset search URLs*
   forgets them).

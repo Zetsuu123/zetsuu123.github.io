@@ -101,7 +101,8 @@ main { max-width: 640px; margin: 0 auto; padding: 0 16px 24px; }
   border: 1px solid var(--line); background: var(--panel); color: var(--text);
   border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer; white-space: nowrap;
 }
-.chips.stores { flex-wrap: wrap; overflow: visible; }
+.chips.stores { flex-wrap: wrap; overflow: visible; gap: 6px; }
+.chips.stores .chip { padding: 5px 10px; gap: 5px; }
 .chip.store .st { color: var(--muted); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; }
 .chip.store.is-done .st { color: var(--text); font-weight: 600; }
 .chip.store.is-blocked { border-color: var(--warn); }

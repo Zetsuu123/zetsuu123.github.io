@@ -1,5 +1,5 @@
 /* Phone Prices
- * Search smartphones on Skroutz, Public, Kotsovolos, Plaisio and Germanos and show the cheapest.
+ * Search smartphones on Skroutz, BestPrice, Public, Kotsovolos, Plaisio and Germanos and show the cheapest.
  *
  * In the Android app, window.PPBridge (Java) opens each store's search page in a hidden WebView
  * on the phone and runs ppExtract (extract.js) inside it; results come back via PPNative.on().
@@ -9,7 +9,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '1.0';
+  const APP_VERSION = '1.1';
   const STORES = window.PP_STORES;
   const N = window.PPBridge || null; // native bridge (Android app only)
   const EXTRACT_SRC = String(window.ppExtract);
@@ -391,7 +391,7 @@
               <li class="${j === 0 && !o.it.oos ? 'cheapest' : ''}${o.it.oos ? ' is-oos' : ''}">
                 <a href="#" data-open="${esc(o.it.u)}" title="${esc(o.it.t)}">
                   <span class="dot" style="background:${o.st.color}"></span>
-                  <span class="o-store">${esc(o.st.name)}${o.st.id === 'skroutz' ? '<small>lowest shop</small>' : ''}</span>
+                  <span class="o-store">${esc(o.st.name)}${o.st.aggregator ? '<small>lowest shop</small>' : ''}</span>
                   <span class="o-note">${o.it.oos ? 'out of stock' : (j === 0 ? 'cheapest' : '')}</span>
                   <span class="o-price">${money(o.it.p)}</span>
                 </a>
