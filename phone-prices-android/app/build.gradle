@@ -1,0 +1,71 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The app's screen is the web app at https://zetsuu123.github.io/phone-prices/ (loaded live, so
+// fixes arrive without reinstalling). A copy from ../../phone-prices is bundled for offline start.
+def webSrc = rootProject.file('../phone-prices')
+def webOut = layout.buildDirectory.dir('generated/webAssets')
+
+tasks.register('syncWebAssets', Sync) {
+    from(webSrc) {
+        exclude 'README.md', 'sw.js', '*.apk'
+    }
+    into(webOut.map { it.dir('www') })
+}
+
+// Optional upload key in android-phone-prices/keystore.properties (never committed).
+// Without it, release builds are signed with the local debug key (fine for sideloading).
+def keystoreFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystoreFile.exists()) { keystoreFile.withInputStream { keystoreProps.load(it) } }
+
+android {
+    namespace 'io.github.zetsuu123.phoneprices'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'io.github.zetsuu123.phoneprices'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '1.0'
+    }
+
+    sourceSets {
+        main.assets.srcDirs += webOut
+    }
+
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            upload {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig keystoreFile.exists() ? signingConfigs.upload : signingConfigs.debug
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+tasks.named('preBuild') { dependsOn 'syncWebAssets' }
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.14.0'
+}
