@@ -9,7 +9,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '1.1';
+  const APP_VERSION = '1.2';
   const STORES = window.PP_STORES;
   const N = window.PPBridge || null; // native bridge (Android app only)
   const EXTRACT_SRC = String(window.ppExtract);
@@ -71,6 +71,20 @@
   const splitAlnum = (t) => t.replace(/([a-z])(\d)/g, '$1 $2').replace(/(\d)([a-z])/g, '$1 $2').split(' ');
 
   const BRANDS = new Set(['apple', 'samsung', 'galaxy', 'xiaomi', 'huawei', 'honor', 'motorola', 'moto', 'nokia', 'oppo', 'realme', 'oneplus', 'google', 'sony', 'nothing', 'tcl', 'zte', 'alcatel', 'vivo', 'hmd', 'cubot', 'blackview', 'doogee', 'ulefone', 'oukitel', 'asus', 'lenovo', 'cat', 'fairphone', 'infinix', 'tecno', 'meizu']);
+  // Brand families: words that name the same maker. A brand typed in a search must agree with the
+  // phone's family ("xiaomi 18 pro max" must not find "iPhone 18 Pro Max"), and phones from different
+  // families never share a row ("Xiaomi 15" is not "OnePlus 15").
+  const FAMILIES = {
+    apple: ['apple', 'iphone'], samsung: ['samsung', 'galaxy'], xiaomi: ['xiaomi', 'redmi', 'poco'],
+    google: ['google', 'pixel'], motorola: ['motorola', 'moto'], huawei: ['huawei'], honor: ['honor'],
+    oppo: ['oppo'], realme: ['realme'], oneplus: ['oneplus'], nothing: ['nothing'], tcl: ['tcl'],
+    zte: ['zte', 'nubia'], alcatel: ['alcatel'], vivo: ['vivo'], nokia: ['nokia', 'hmd'], sony: ['sony', 'xperia'],
+    cubot: ['cubot'], blackview: ['blackview'], doogee: ['doogee'], ulefone: ['ulefone'], oukitel: ['oukitel'],
+    asus: ['asus', 'zenfone'], lenovo: ['lenovo'], cat: ['cat'], fairphone: ['fairphone'], infinix: ['infinix'],
+    tecno: ['tecno'], meizu: ['meizu'],
+  };
+  const FAMILY_OF = new Map(Object.entries(FAMILIES).flatMap(([f, words]) => words.map((w) => [w, f])));
+  const familyOf = (tk) => { for (const t of tk) { const f = FAMILY_OF.get(t); if (f) return f; } return ''; };
   const FILLER = new Set(['5g', '4g', 'lte', 'dual', 'sim', 'dualsim', 'ds', 'nfc', 'esim', 'smartphone', 'smartphones', 'κινητο', 'κινητα', 'τηλεφωνο', 'τηλεφωνα', 'mobile', 'phone', 'global', 'version', 'eu', 'rom', 'new', 'νεο', 'με', 'και', 'with', 'and', 'the', 'refurbished', 'grade', 'renewed', 'ανακατασκευασμενο', 'μεταχειρισμενο', 'used', 'nano', 'unlocked']);
   const COLORS = new Set(['black', 'white', 'blue', 'green', 'red', 'pink', 'purple', 'violet', 'yellow', 'gold', 'silver', 'gray', 'grey', 'graphite', 'titanium', 'natural', 'desert', 'ultramarine', 'teal', 'midnight', 'starlight', 'lavender', 'mint', 'cream', 'navy', 'orange', 'coral', 'bronze', 'beige', 'brown', 'sand', 'ice', 'icy', 'mist', 'jade', 'onyx', 'cobalt', 'sapphire', 'emerald', 'lime', 'peach', 'lilac', 'aqua', 'ocean', 'sky', 'cyan', 'rose', 'champagne', 'frost', 'shadow', 'space', 'jet', 'pearl', 'obsidian', 'porcelain', 'hazel', 'iris', 'peony', 'wintergreen', 'moonstone', 'charcoal', 'awesome', 'phantom', 'cosmic', 'deep', 'light', 'dark', 'μαυρο', 'λευκο', 'ασπρο', 'μπλε', 'πρασινο', 'κοκκινο', 'ροζ', 'μωβ', 'κιτρινο', 'χρυσο', 'ασημι', 'ασημενιο', 'γκρι', 'μπεζ', 'πορτοκαλι', 'καφε', 'τιρκουαζ', 'λιλα', 'μεντα', 'σκουρο', 'ανοιχτο']);
 
@@ -92,9 +106,10 @@
     const accessory = ACCESSORY_RE.test(f);
     const phoneHint = (it.c && /smartphone|κινητ|mobile/i.test(it.c)) || (st.phonePath && new RegExp(st.phonePath, 'i').test(it.u));
     const phone = !accessory && it.p >= 50 && (storage > 0 || phoneHint);
+    const fam = familyOf(tk);
     return {
-      tk, storage, model, refurb, phone,
-      key: (refurb ? 'r:' : '') + model.join(' ') + '|' + storage,
+      tk, storage, model, refurb, phone, fam,
+      key: (refurb ? 'r:' : '') + fam + ':' + model.join(' ') + '|' + storage,
     };
   }
 
@@ -111,9 +126,13 @@
   function matches(info, qt) {
     const T = info.tk;
     const T2 = T.flatMap(splitAlnum);
+    // a brand in the search rules out phones of other brands
+    const qFams = qt.map((q) => FAMILY_OF.get(q)).filter(Boolean);
+    if (qFams.length && info.fam && !qFams.includes(info.fam)) return false;
     return qt.every((q) => {
       if (T.includes(q)) return true;
-      if (BRANDS.has(q)) return true; // brand words are optional ("galaxy s25" finds "Samsung S25")
+      // other brand words of the same maker are optional ("galaxy s25" finds "Samsung S25")
+      if (BRANDS.has(q)) return true;
       if (STORAGE_RE.test(q)) return info.storage === gb(q);
       if (/^\d+$/.test(q)) {
         if (info.storage === +q || (+q <= 4 && info.storage === +q * 1024)) return true;
