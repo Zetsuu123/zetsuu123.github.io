@@ -253,6 +253,23 @@ export class HAConnection {
     });
   }
 
+  // Numeric history for sparklines/charts: { entity_id: [[unixSeconds, value], ...] }
+  async history(ids, hours) {
+    const end = new Date();
+    const start = new Date(end.getTime() - hours * 3600_000);
+    const res = await this.send({
+      type: 'history/history_during_period', start_time: start.toISOString(), end_time: end.toISOString(),
+      entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false,
+    });
+    const out = {};
+    for (const id of ids) {
+      out[id] = (res?.[id] || [])
+        .map((p) => [p.lu ?? p.lc ?? (p.last_updated ? Date.parse(p.last_updated) / 1000 : 0), parseFloat(p.s ?? p.state)])
+        .filter((p) => p[0] && Number.isFinite(p[1]));
+    }
+    return out;
+  }
+
   callService(domain, service, data = {}, target) {
     const msg = { type: 'call_service', domain, service, service_data: data };
     if (target) msg.target = target;

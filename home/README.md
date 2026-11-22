@@ -7,16 +7,26 @@ Live at **https://zetsuu123.github.io/home/**. It opens in demo mode with a simu
 
 ## What it shows
 
-- **Home**: a greeting, the clock and date, outdoor weather (first `weather.*` entity), network and Home Assistant status,
-  average indoor temperature and humidity, how many lights are on, and a card for each area
-  (one bulb per light that you tap to toggle, fan status, temperature and humidity, and an "Offline" badge if every device in the area is unavailable).
-  "All Lights Off" and "All Fans Off" buttons stay pinned at the bottom.
-- **Area pages**: lights with brightness sliders (tinted to the bulb's colour), fans with speed sliders, switches, covers (open/stop/close),
-  locks, thermostats (target temperature and HVAC mode), plus sensor and door/motion readouts.
-- **Settings**: connect or disconnect, a name for the greeting, a 24-hour clock, keep-screen-awake, full screen, and which areas to show.
+Everything on the dashboard is defined in **`js/config.js`**, which is set up for this home:
 
-Areas, and the devices in them, come from Home Assistant's area, device and entity registries. Hidden, disabled and diagnostic/config entities are left out.
-Controllable devices that aren't in any area appear under "Other". If you set a picture on an area in Home Assistant, the area card uses it as its background.
+- **Home**: a greeting, the clock, the weather (`weather.forecast_home`), status chips (lights, front door, washer, printer, water heater),
+  alerts when the water valve is open or the freezer is warm, indoor and outdoor temperature and humidity, current power use with today's and this month's kWh,
+  a card for each room with one button per light, temperature and humidity graphs, the main devices, and the **ΚΛΕΙΣΙΜΟ ΦΩΤΩΝ** / **ΚΛΕΙΣΙΜΟ A/C** buttons pinned at the bottom.
+- **Rooms**: Σαλόνι, Κουζίνα, Είσοδος & Διάδρομος, Μπάνιο, Τουαλέτα, Δωμάτιο Ντίνου, Δωμάτιο Ιωάννας and Μπαλκόνι, each with its lights
+  (brightness and colour for the Govee lights), sensors and devices (A/C, PC, awning, valve and so on).
+- **Pages**: Θερμοσίφωνας, Κλιματισμός, Πότισμα, Ψυγείο, K1C (camera, progress, CFS filament slots, temperatures, controls), Σκούπα (map, controls, room cleaning),
+  Δίκτυο, Υπολογιστής, Καταναλώσεις, Μπαταρίες, Αισθητήρες, Κινητά, Μετοχές and Κάτοψη (your `/local/floorplan.svg` with tappable lights).
+- **Settings**: connect or disconnect, a name for the greeting, a 24-hour clock, keep-screen-awake, full screen, and which rooms to show.
+
+Until Home Assistant is connected, the dashboard runs a demo with made-up values for the same entities.
+
+## Editing
+
+Open `js/config.js` (for example with the **Studio Code Server** add-on) and edit it. Every room, page and card is listed there with its entity ID,
+and the top of the file explains the card types and the `h` helper used for conditions and computed text. Save the file and refresh the page.
+If the browser keeps showing the old version, force-refresh with Ctrl+F5.
+
+If `config.js` has no `rooms`, the dashboard builds rooms from your Home Assistant areas instead.
 
 ## Connecting
 
@@ -59,8 +69,11 @@ Anyone with access to the tablet can use the dashboard, so use a dedicated Home 
 | File | Purpose |
 | --- | --- |
 | `index.html`, `style.css` | Page shell and the whole visual design |
-| `js/app.js` | State, rendering, interactions and settings |
+| `js/config.js` | **What the dashboard shows: rooms, pages, cards** |
+| `js/app.js` | State, home/room/settings views, actions |
+| `js/cards.js` | All card types (tile, light, sensor graph, gauge, climate, …) |
+| `js/i18n.js` | Greek and English interface text |
 | `js/ha.js` | Home Assistant WebSocket client and OAuth/token auth |
-| `js/demo.js` | The simulated demo home |
+| `js/demo.js` | Demo values generated from config.js |
 | `js/morph.js` | Small DOM patcher so animations and sliders survive live updates |
 | `js/icons.js` | Inline SVG icon set |

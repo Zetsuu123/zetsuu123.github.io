@@ -51,6 +51,50 @@ const P = {
   eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   eyeOff: '<path d="M2 2l20 20"/><path d="M6.7 6.7C3.9 8.4 2 12 2 12s3.5 7 10 7c2 0 3.8-.7 5.3-1.7M10.6 5.1C11 5 11.5 5 12 5c6.5 0 10 7 10 7a17 17 0 0 1-2.2 3.2"/>',
   sparkle: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"/>',
+  washer: '<rect x="3" y="2" width="18" height="20" rx="2"/><circle cx="12" cy="13" r="5"/><path d="M7 6h.01M10 6h.01"/><path d="M9.5 13.5a3 3 0 0 0 5 0"/>',
+  printer: '<path d="M4 3h16v4H4z"/><path d="M6 7v11M18 7v11"/><path d="M3 21h18"/><path d="M12 7v5"/><path d="m10 12 2 3 2-3z"/>',
+  boiler: '<rect x="6" y="2" width="12" height="16" rx="6"/><path d="M9 22v-4M15 22v-4"/><path d="M12 7c-1.2 1.4-1.6 2.4-1.6 3.2a1.6 1.6 0 0 0 3.2 0c0-.8-.4-1.8-1.6-3.2z"/>',
+  valve: '<path d="M2 11h4v6H2zM18 11h4v6h-4z"/><path d="M6 14h12"/><path d="M12 14V8"/><path d="M8 6h8"/>',
+  fridge: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M5 10h14"/><path d="M8.5 6v1.5M8.5 13v3"/>',
+  vacuum: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M7 17.5l1.5-1.5M17 17.5 15.5 16"/>',
+  battery: '<rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2"/><path d="M6 10v4M9.5 10v4"/>',
+  trending: '<path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+  phone: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>',
+  watch: '<rect x="6" y="6" width="12" height="12" rx="3"/><path d="m9 6 1-4h4l1 4M9 18l1 4h4l1-4"/><path d="M12 10v2l1.5 1"/>',
+  tablet: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M11 18h2"/>',
+  mapPin: '<path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>',
+  map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
+  camera: '<path d="M14.5 4h-5L7.5 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.5z"/><circle cx="12" cy="13" r="3.5"/>',
+  play: '<path d="M7 4v16l13-8z"/>',
+  pause: '<path d="M8 5v14M16 5v14"/>',
+  timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M10 2h4"/>',
+  cpu: '<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>',
+  disk: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 14h18"/><path d="M7 17h.01M11 17h2"/>',
+  ethernet: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 16v4h10v-4"/><path d="M9 8v3M12 8v3M15 8v3"/>',
+  restart: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+  leaf: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.2-6"/>',
+  router: '<rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6.5 17.5h.01M10 17.5h.01"/><path d="M17 14V9"/><path d="M14 6.5a4.2 4.2 0 0 1 6 0"/><path d="M12 4a7.5 7.5 0 0 1 10 0"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/>',
+  alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  ac: '<rect x="2" y="4" width="20" height="9" rx="2"/><path d="M6 9h12"/><path d="M7 17c0 1.5-1 2-1 3M12 17v4M17 17c0 1.5 1 2 1 3"/>',
+  curtains: '<path d="M3 3h18"/><path d="M5 3c0 6 2 12 5 18H5zM19 3c0 6-2 12-5 18h5z"/>',
+  strip: '<path d="M3 17 17 3l4 4L7 21z"/><path d="M8.5 15.5h.01M11.5 12.5h.01M14.5 9.5h.01"/>',
+  spot: '<path d="M5 4h14l-2.5 6h-9z"/><path d="M12 14v3M8 13l-1.8 2.6M16 13l1.8 2.6M12 20v1"/>',
+  globeLight: '<circle cx="12" cy="10" r="7"/><path d="M9 21h6M12 17v4"/><path d="M9 8a3.5 3.5 0 0 1 3-2"/>',
+  circle: '<circle cx="12" cy="12" r="7" fill="currentColor"/>',
+  layers: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/>',
+  arrowUpCircle: '<circle cx="12" cy="12" r="9"/><path d="m8 12 4-4 4 4M12 16V8"/>',
+  arrowDown: '<path d="M12 5v14M19 12l-7 7-7-7"/>',
+  arrowUp: '<path d="M12 19V5M5 12l7-7 7 7"/>',
+  devices: '<rect x="2" y="4" width="14" height="10" rx="1.5"/><rect x="17" y="8" width="5" height="11" rx="1"/><path d="M6 18h6M9 14v4"/>',
+  accessPoint: '<circle cx="12" cy="12" r="2"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/>',
+  netSwitch: '<rect x="2" y="8" width="20" height="8" rx="2"/><path d="M6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01"/>',
+  speed: '<path d="m12 14 5-5"/><path d="M3.3 19a10 10 0 1 1 17.4 0"/><path d="M12 6v1M6 12H5M19 12h-1"/>',
+  nozzle: '<path d="M8 2h8v6l-2 4h-4l-2-4z"/><path d="M11 12h2l-1 3z"/><path d="M7 19c1.5-1 3.5-1 5 0s3.5 1 5 0M5 22h14"/>',
+  bed2: '<path d="M3 20V8"/><path d="M3 12h18v8"/><path d="M3 16h18"/><path d="M7 12V9h5v3"/>',
+  awning: '<path d="M3 4h18"/><path d="M4 4v4l2 3 2-3 2 3 2-3 2 3 2-3 2 3 2-3V4"/><path d="M5 11v9M19 11v9"/>',
+  walk: '<circle cx="13" cy="4" r="2"/><path d="m9 22 2-6 3 2v4"/><path d="m10 9 4-1 3 4 3 1"/><path d="M14 8l-2 8-3-2-2 3"/>',
   grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
 };
 
@@ -59,6 +103,15 @@ export function icon(name, cls = '') {
 }
 
 const AREA_RULES = [
+  [/σαλ[οό]ν|καθιστικ/, 'sofa'],
+  [/κουζ[ιί]ν|τραπεζαρ/, 'utensils'],
+  [/μπ[αά]νι|τουαλ[εέ]τ/, 'bath'],
+  [/γραφε[ιί]/, 'monitor'],
+  [/μπαλκ[οό]ν|κ[ηή]π|βερ[αά]ντ|ταρ[αά]τσ|αυλ[ηή]/, 'tree'],
+  [/διαδρομ|δι[αά]δρομ|ε[ιί]σοδ|χολ/, 'door'],
+  [/αποθ[ηή]κ/, 'box'],
+  [/γκαρ[αά]ζ/, 'car'],
+  [/υπνοδωμ|κρεβατοκ[αά]μ|δωμ[αά]τι/, 'bed'],
   [/living|lounge|family|salon/, 'sofa'],
   [/bed|guest|kid|nursery|master/, 'bed'],
   [/kitchen|dining|cook/, 'utensils'],
@@ -80,10 +133,13 @@ const MDI_MAP = {
   'garage': 'car', 'car': 'car', 'tree': 'tree', 'flower': 'tree', 'door': 'door', 'package-variant': 'box',
 };
 
+export const hasIcon = (name) => name in P;
+
 export function areaIcon(area) {
+  if (area.icon && P[area.icon]) return area.icon;
   const mdi = (area.icon || '').replace(/^mdi:/, '');
   if (MDI_MAP[mdi]) return MDI_MAP[mdi];
-  const n = (area.name || '').toLowerCase();
+  const n = (area.name || '').toLocaleLowerCase('el');
   for (const [re, ic] of AREA_RULES) if (re.test(n)) return ic;
   return 'home';
 }

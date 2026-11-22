@@ -1,131 +1,204 @@
-// A simulated home that behaves like Home Assistant, used until a real instance is connected.
-const AREAS = [
-  { id: 'living', name: 'Living Room' },
-  { id: 'kitchen', name: 'Kitchen' },
-  { id: 'studio', name: 'Studio' },
-  { id: 'lab', name: 'Lab' },
-  { id: 'office', name: 'Office' },
-  { id: 'bedroom', name: 'Bedroom' },
-  { id: 'inventory', name: 'Inventory' },
-  { id: 'garden', name: 'Garden' },
-];
+// A simulated home built from config.js: every entity the config mentions gets a plausible fake state,
+// so the dashboard can be previewed before Home Assistant is connected.
+const ENTITY_RE = /\b((?:switch|light|sensor|binary_sensor|climate|cover|fan|vacuum|camera|weather|automation|input_number|number|select|input_select|input_boolean|button|script|device_tracker|media_player|lock)\.[a-z0-9_]+)\b/g;
+// Service names that look like entity IDs.
+const NOT_ENTITIES = new Set(['button.press', 'climate.turn_off', 'light.turn_on', 'vacuum.set_fan_speed']);
 
-function st(entity_id, state, attributes = {}) {
-  return { entity_id, state, attributes, last_changed: new Date().toISOString() };
+function collect(cfg) {
+  const ids = new Set();
+  const seen = new WeakSet();
+  const walk = (v) => {
+    if (typeof v === 'string') { for (const m of v.matchAll(ENTITY_RE)) ids.add(m[1]); }
+    else if (typeof v === 'function') { for (const m of v.toString().matchAll(ENTITY_RE)) ids.add(m[1]); }
+    else if (v && typeof v === 'object') { if (seen.has(v)) return; seen.add(v); Object.values(v).forEach(walk); }
+  };
+  walk(cfg);
+  for (const r of cfg.rooms || []) for (const l of r.lights || []) ids.add(l.entity);
+  return [...ids].filter((id) => !NOT_ENTITIES.has(id));
 }
-const light = (area, id, name, on, bri = 180, extra = {}) => [area, st(`light.${id}`, on ? 'on' : 'off', {
-  friendly_name: name, supported_color_modes: ['brightness'], color_mode: on ? 'brightness' : null, brightness: on ? bri : null, ...extra,
-})];
-const onoff = (area, id, name, on) => [area, st(`light.${id}`, on ? 'on' : 'off', { friendly_name: name, supported_color_modes: ['onoff'] })];
-const fan = (area, id, name, on, pct = 50) => [area, st(`fan.${id}`, on ? 'on' : 'off', { friendly_name: name, percentage: on ? pct : 0, percentage_step: 25 })];
-const temp = (area, id, name, v) => [area, st(`sensor.${id}_temperature`, String(v), { friendly_name: name, device_class: 'temperature', unit_of_measurement: '°C', state_class: 'measurement' })];
-const hum = (area, id, name, v) => [area, st(`sensor.${id}_humidity`, String(v), { friendly_name: name, device_class: 'humidity', unit_of_measurement: '%', state_class: 'measurement' })];
 
-function buildEntities() {
-  return [
-    light('living', 'living_ceiling', 'Living Room Ceiling', true, 200),
-    light('living', 'living_floor_lamp', 'Living Room Floor Lamp', true, 120, { supported_color_modes: ['color_temp'], color_temp_kelvin: 2700 }),
-    light('living', 'living_tv_strip', 'Living Room TV Strip', false, 0, { supported_color_modes: ['hs'], rgb_color: [120, 90, 255] }),
-    light('living', 'living_shelf', 'Living Room Shelf', false),
-    fan('living', 'living_fan', 'Living Room Fan', false),
-    temp('living', 'living', 'Living Room Temperature', 22.4),
-    hum('living', 'living', 'Living Room Humidity', 44),
-    ['living', st('climate.living_room', 'heat', {
-      friendly_name: 'Living Room Thermostat', hvac_modes: ['off', 'heat', 'cool', 'auto'], current_temperature: 22.4,
-      temperature: 22.5, min_temp: 7, max_temp: 30, target_temp_step: 0.5, hvac_action: 'idle',
-    })],
-    ['living', st('lock.front_door', 'locked', { friendly_name: 'Front Door' })],
-    ['living', st('binary_sensor.living_motion', 'off', { friendly_name: 'Living Room Motion', device_class: 'motion' })],
+const pretty = (id) => id.split('.')[1].replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    light('kitchen', 'kitchen_ceiling', 'Kitchen Ceiling', false),
-    light('kitchen', 'kitchen_island', 'Kitchen Island', true, 230),
-    onoff('kitchen', 'kitchen_cabinets', 'Kitchen Cabinets', false),
-    ['kitchen', st('switch.coffee_machine', 'off', { friendly_name: 'Coffee Machine' })],
-    temp('kitchen', 'kitchen', 'Kitchen Temperature', 23.1),
-    hum('kitchen', 'kitchen', 'Kitchen Humidity', 51),
-
-    ...Array.from({ length: 8 }, (_, i) => light('studio', `studio_spot_${i + 1}`, `Studio Spot ${i + 1}`, i < 3, 150 + i * 10)),
-    fan('studio', 'studio_fan_1', 'Studio Fan 1', false),
-    fan('studio', 'studio_fan_2', 'Studio Fan 2', false),
-    temp('studio', 'studio', 'Studio Temperature', 24.0),
-    hum('studio', 'studio', 'Studio Humidity', 38),
-
-    ...Array.from({ length: 4 }, (_, i) => light('lab', `lab_${i + 1}`, `Lab Light ${i + 1}`, i === 0, 210)),
-    ['lab', st('fan.lab_fan', 'unavailable', { friendly_name: 'Lab Fan' })],
-    ['lab', st('switch.soldering_station', 'on', { friendly_name: 'Soldering Station' })],
-    temp('lab', 'lab', 'Lab Temperature', 25.3),
-
-    ...Array.from({ length: 4 }, (_, i) => light('office', `office_${i + 1}`, ['Office Desk', 'Office Ceiling', 'Office Monitor Bar', 'Office Lamp'][i], i === 0 || i === 2, 190)),
-    fan('office', 'office_fan', 'Office Fan', true, 50),
-    ['office', st('cover.office_blinds', 'open', { friendly_name: 'Office Blinds', current_position: 70, supported_features: 15 })],
-    temp('office', 'office', 'Office Temperature', 23.6),
-    hum('office', 'office', 'Office Humidity', 42),
-
-    light('bedroom', 'bedroom_ceiling', 'Bedroom Ceiling', false),
-    light('bedroom', 'bedroom_bedside_left', 'Bedroom Bedside Left', false, 60, { supported_color_modes: ['color_temp'] }),
-    light('bedroom', 'bedroom_bedside_right', 'Bedroom Bedside Right', false, 60, { supported_color_modes: ['color_temp'] }),
-    ['bedroom', st('cover.bedroom_curtains', 'closed', { friendly_name: 'Bedroom Curtains', current_position: 0, supported_features: 15 })],
-    temp('bedroom', 'bedroom', 'Bedroom Temperature', 21.2),
-    hum('bedroom', 'bedroom', 'Bedroom Humidity', 47),
-
-    ...Array.from({ length: 4 }, (_, i) => ['inventory', st(`light.inventory_${i + 1}`, 'unavailable', { friendly_name: `Inventory Light ${i + 1}` })]),
-    ['inventory', st('fan.inventory_fan', 'unavailable', { friendly_name: 'Inventory Fan' })],
-
-    light('garden', 'garden_path', 'Garden Path', false),
-    light('garden', 'garden_porch', 'Garden Porch', false),
-    ['garden', st('switch.garden_irrigation', 'off', { friendly_name: 'Garden Irrigation' })],
-    ['garden', st('binary_sensor.garden_gate', 'off', { friendly_name: 'Garden Gate', device_class: 'door' })],
-    [null, st('weather.home', 'partlycloudy', { friendly_name: 'Home', temperature: 18, temperature_unit: '°C', humidity: 62 })],
-  ];
+function fake(id) {
+  const [d, obj] = id.split('.');
+  const A = { friendly_name: pretty(id) };
+  const st = (state, extra = {}) => ({ entity_id: id, state: String(state), attributes: { ...A, ...extra }, last_changed: new Date(Date.now() - rnd(2, 180) * 60000).toISOString() });
+  const has = (...k) => k.some((w) => obj.includes(w));
+  switch (d) {
+    case 'switch':
+      if (has('water_valve')) return st('off');
+      if (has('water_heater')) return st('off');
+      if (has('100226ea15', '10024f9788', 'wi_fi', 'power_cool')) return st(has('power_cool', 'guest') ? 'off' : 'on');
+      return st(Math.random() < 0.35 ? 'on' : 'off');
+    case 'light': {
+      const on = Math.random() < 0.5;
+      return st(on ? 'on' : 'off', { supported_color_modes: obj.startsWith('h') ? ['color_temp', 'hs'] : ['brightness'], color_mode: on ? (obj.startsWith('h') ? 'hs' : 'brightness') : null, brightness: on ? 180 : null, rgb_color: obj.startsWith('h') ? [120, 90, 255] : null });
+    }
+    case 'automation': case 'input_boolean': return st(Math.random() < 0.7 ? 'on' : 'off');
+    case 'script': case 'button': return st('unknown');
+    case 'binary_sensor':
+      if (has('door')) return st('off', { device_class: 'door' });
+      if (has('1001f29270')) return st('off', { device_class: 'door' });
+      if (has('occupancy', 'motion')) return st(Math.random() < 0.3 ? 'on' : 'off', { device_class: 'occupancy' });
+      if (has('port_')) return st(has('lan4', 'port_5', 'lan3') ? 'off' : 'on', { device_class: 'connectivity', speed_mbps: has('wan') ? 1000 : pick([100, 1000]), uplink: has('wan') });
+      if (has('internet', 'online')) return st('on', { device_class: 'connectivity' });
+      return st('on');
+    case 'climate':
+      return st(has('samsung') ? 'heat' : 'off', {
+        hvac_modes: ['off', 'heat', 'cool', 'auto', 'dry', 'fan_only'], fan_modes: ['auto', 'low', 'medium', 'high'], fan_mode: 'auto',
+        current_temperature: has('samsung') ? 21.5 : 23, temperature: 22, min_temp: 16, max_temp: 30, target_temp_step: 1, hvac_action: has('samsung') ? 'heating' : 'off',
+      });
+    case 'cover': return st('open', { current_position: 60, supported_features: 15, device_class: 'awning' });
+    case 'vacuum': return st('docked', { fan_speed: 'Standard', battery_level: 100, filter_left: 118, main_brush_left: 187, side_brush_left: 92, sensor_dirty_left: 21, cleaning_count: 342 });
+    case 'camera': return st('idle');
+    case 'weather': return st('partlycloudy', { temperature: 17, temperature_unit: '°C', humidity: 62 });
+    case 'media_player': return st('on');
+    case 'device_tracker': return st('home', { latitude: 37.9838, longitude: 23.7275, gps_accuracy: 12 });
+    case 'select': case 'input_select': return st('medium', { options: ['low', 'medium', 'high'] });
+    case 'input_number': case 'number': {
+      if (has('water_heater_timer')) return st(60, { min: 10, max: 120, step: 5, unit_of_measurement: 'min' });
+      if (has('valve_auto_off')) return st(15, { min: 1, max: 60, step: 1, unit_of_measurement: 'min' });
+      if (has('fridge_temperature')) return st(3, { min: 1, max: 7, step: 1, unit_of_measurement: '°C' });
+      if (has('freezer_temperature')) return st(-19, { min: -23, max: -15, step: 1, unit_of_measurement: '°C' });
+      if (has('extruder_target')) return st(220, { min: 0, max: 300, step: 5, unit_of_measurement: '°C' });
+      if (has('bed_target')) return st(60, { min: 0, max: 110, step: 5, unit_of_measurement: '°C' });
+      if (has('speed_factor')) return st(100, { min: 50, max: 300, step: 10, unit_of_measurement: '%' });
+      if (has('timeout')) return st(60, { min: 0, max: 300, step: 10, unit_of_measurement: 's' });
+      return st(80, { min: 0, max: 100, step: 1, unit_of_measurement: '%' });
+    }
+    case 'sensor': {
+      const n = (v, unit, dc, extra) => st(v, { unit_of_measurement: unit, device_class: dc, state_class: 'measurement', ...extra });
+      if (has('k1c_cfs')) return st('ok', {
+        T1: { temperature: 27, dry_and_humidity: 38, color_value: ['0FFFFFF', '0F5A623', '0000000', '-1'] },
+        T2: { temperature: 26, dry_and_humidity: 46, color_value: ['01E88E5', 'unknown', '0E53935', '043A047'] },
+        same_material: [[0, 0, ['T1A'], 'PLA'], [0, 0, ['T1B'], 'PETG'], [0, 0, ['T1C'], 'PLA'], [0, 0, ['T2A'], 'PLA Silk'], [0, 0, ['T2C'], 'ABS'], [0, 0, ['T2D'], 'TPU']],
+      });
+      if (has('current_print_state')) return st('printing');
+      if (has('filename')) return st('benchy_v2.gcode');
+      if (has('print_eta')) return st(new Date(Date.now() + 96 * 60000).toISOString(), { device_class: 'timestamp' });
+      if (has('printer_message')) return st('Printing in progress');
+      if (has('wan_ip')) return st('203.0.113.24');
+      if (has('freezer_temperature')) return n(-18.6, '°C', 'temperature');
+      if (has('fridge_temperature', 'cooler_temperature')) return n(3.8, '°C', 'temperature');
+      if (has('extruder_temperature')) return n(219.6, '°C', 'temperature');
+      if (has('bed_temperature')) return n(60.1, '°C', 'temperature');
+      if (has('chamber')) return n(36.4, '°C', 'temperature');
+      if (has('mcu_temp')) return n(44.8, '°C', 'temperature');
+      if (has('cpu_temp')) return n(48, '°C', 'temperature');
+      if (has('gpu_temp')) return n(52, '°C', 'temperature');
+      if (has('balcony') && has('temperature')) return n(17.2, '°C', 'temperature');
+      if (has('bathroom') && has('temperature')) return n(23.4, '°C', 'temperature');
+      if (has('temperature')) return n(21.8, '°C', 'temperature');
+      if (has('balcony') && has('humidity')) return n(64, '%', 'humidity');
+      if (has('humidity')) return n(has('bathroom') ? 58 : 47, '%', 'humidity');
+      if (has('battery')) return n(Math.round(rnd(18, 100)), '%', 'battery');
+      if (has('_power')) {
+        const w = has('water_heater') ? 0 : has('1002328ae7') ? 860 : has('pc_') ? 185 : has('100226ea15') ? 142 : has('10024f9788') ? 420 : has('1002270788') ? 11 : 60;
+        return n(w, 'W', 'power');
+      }
+      if (has('voltage')) return n(231.4, 'V', 'voltage');
+      if (has('current') && !has('currentclock', 'current_layer', 'current_print')) return n(has('1002328ae7') ? 3.8 : 0.6, 'A', 'current');
+      if (has('energy_day')) return n(has('1002328ae7') ? 6.4 : 0.8, 'kWh', 'energy');
+      if (has('energy_month')) return n(has('1002328ae7') ? 142 : 18, 'kWh', 'energy');
+      if (has('progress')) return n(42, '%');
+      if (has('current_layer')) return st(126);
+      if (has('total_layer')) return st(300);
+      if (has('print_duration')) return n(95, 'min');
+      if (has('time_left')) return n(1.6, 'h');
+      if (has('print_speed')) return n(250, 'mm/s');
+      if (has('filament_used')) return n(3.2, 'm');
+      if (has('object_height')) return n(18.4, 'mm');
+      if (has('latency')) return n(18, 'ms');
+      if (has('wi_fi_clients')) return st(17);
+      if (has('wired_clients')) return st(5);
+      if (has('clients')) return st(22);
+      if (has('download')) return n(24.6, 'Mbit/s', 'data_rate');
+      if (has('upload')) return n(3.1, 'Mbit/s', 'data_rate');
+      if (has('utilization')) return n(has('2_4g') ? 54 : 22, '%');
+      if (has('flow')) return n(0, 'L/min');
+      if (has('irrigation_volume')) return n(45, 'L');
+      if (has('free_space')) return n(Math.round(rnd(80, 900)), 'GB');
+      if (has('cpuload', 'gpu_usage', 'memoryusage')) return n(Math.round(rnd(10, 60)), '%');
+      if (has('mem_clock')) return n(9501, 'MHz');
+      if (has('clock')) return n(Math.round(rnd(3200, 4800)), 'MHz');
+      if (has('ram_used')) return n(12.4, 'GB');
+      if (has('spx')) return n(5912.4, 'USD');
+      if (has('ndx')) return n(20840.7, 'USD');
+      if (has('btc')) return n(82450, 'EUR');
+      if (has('eth')) return n(2915.3, 'EUR');
+      return n(Math.round(rnd(1, 100)), '');
+    }
+    default: return st('unknown');
+  }
 }
 
 export class DemoBackend {
-  constructor({ onStatus, onSnapshot, onState }) {
+  constructor(cfg, { onStatus, onSnapshot, onState }) {
+    this.cfg = cfg;
     this.cb = { onStatus, onSnapshot, onState };
     this.entities = {};
-    this.entityArea = {};
   }
 
   connect() {
-    for (const [area, s] of buildEntities()) {
-      this.entities[s.entity_id] = s;
-      if (area) this.entityArea[s.entity_id] = area;
-    }
+    for (const id of collect(this.cfg)) this.entities[id] = fake(id);
+    // Keep the demo stories consistent: a print running, the valve closed, freezer cold.
     this.cb.onSnapshot({
-      entities: { ...this.entities },
-      areas: AREAS.map((a) => ({ ...a, icon: '', picture: '' })),
-      entityArea: { ...this.entityArea },
-      registryHidden: new Set(),
-      config: { location_name: 'Demo Home', temp_unit: '°C', version: 'demo' },
+      entities: { ...this.entities }, areas: [], entityArea: {}, registryHidden: new Set(),
+      config: { location_name: this.cfg.title || 'Demo', temp_unit: '°C', version: 'demo' },
     });
     this.cb.onStatus('connected');
-    this.drift = setInterval(() => this.wander(), 20_000);
+    this.drift = setInterval(() => this.wander(), 15_000);
   }
 
   wander() {
     for (const s of Object.values(this.entities)) {
-      const dc = s.attributes.device_class;
-      if (s.entity_id.startsWith('sensor.') && (dc === 'temperature' || dc === 'humidity')) {
-        const step = dc === 'temperature' ? 0.1 : 1;
-        const v = parseFloat(s.state) + (Math.random() < 0.5 ? -step : step) * (Math.random() < 0.6 ? 1 : 0);
-        this.set(s.entity_id, dc === 'temperature' ? v.toFixed(1) : String(Math.round(v)));
-      }
+      if (!s.entity_id.startsWith('sensor.') || s.attributes.state_class !== 'measurement') continue;
+      const v = parseFloat(s.state);
+      if (!Number.isFinite(v) || v === 0) continue;
+      const nv = v * (1 + (Math.random() - 0.5) * 0.01);
+      this.set(s.entity_id, Math.abs(v) >= 100 ? Math.round(nv) : nv.toFixed(1));
     }
   }
 
   set(id, state, attrs = {}) {
     const old = this.entities[id];
     if (!old) return;
-    const next = { ...old, state, attributes: { ...old.attributes, ...attrs }, last_changed: new Date().toISOString() };
+    const next = { ...old, state: String(state), attributes: { ...old.attributes, ...attrs }, last_changed: new Date().toISOString() };
     this.entities[id] = next;
-    if (id.startsWith('sensor.') && next.attributes.device_class === 'temperature' && this.entityArea[id] === 'living') {
-      const c = this.entities['climate.living_room'];
-      if (c) this.set('climate.living_room', c.state, { current_temperature: parseFloat(state) });
-    }
     setTimeout(() => this.cb.onState(id, next), 120);
   }
 
+  async history(ids, hours) {
+    const out = {};
+    const now = Date.now() / 1000;
+    for (const id of ids) {
+      const v = parseFloat(this.entities[id]?.state);
+      if (!Number.isFinite(v)) { out[id] = []; continue; }
+      const n = 96;
+      const amp = Math.max(Math.abs(v) * 0.04, 0.5);
+      const seed = [...id].reduce((a, c) => a + c.charCodeAt(0), 0) % 100;
+      const pts = [];
+      for (let i = 0; i <= n; i++) {
+        const t = now - hours * 3600 + (i / n) * hours * 3600;
+        const wave = Math.sin(i / 13 + seed) * 0.6 + Math.sin(i / 5.7 + seed * 1.7) * 0.25 + Math.sin(i / 2.3 + seed) * 0.08;
+        pts.push([t, v + wave * amp * (i / n < 0.98 ? 1 : 0)]);
+      }
+      pts[pts.length - 1][1] = v;
+      out[id] = pts;
+    }
+    return out;
+  }
+
   async callService(domain, service, data = {}, target = {}) {
+    if (domain === 'script' && service === 'turn_off_lights') {
+      for (const r of this.cfg.rooms || []) for (const l of r.lights || []) {
+        const e = this.entities[l.entity];
+        if (e && e.state === 'on') this.set(l.entity, 'off', { brightness: null });
+      }
+      return;
+    }
     let ids = target.entity_id || data.entity_id || [];
     if (!Array.isArray(ids)) ids = [ids];
     for (const id of ids) {
@@ -133,29 +206,32 @@ export class DemoBackend {
       if (!e || e.state === 'unavailable') continue;
       const d = id.split('.')[0];
       const svc = service === 'toggle' ? (e.state === 'on' ? 'turn_off' : 'turn_on') : service;
-      if (d === 'light') {
-        if (svc === 'turn_off') this.set(id, 'off', { brightness: null });
-        else if (svc === 'turn_on') {
-          const dimmable = !(e.attributes.supported_color_modes || []).every((m) => m === 'onoff');
-          const bri = data.brightness_pct != null ? Math.round(data.brightness_pct * 2.55) : (e.attributes.brightness || 200);
-          this.set(id, 'on', dimmable ? { brightness: bri } : {});
-        }
-      } else if (d === 'fan') {
-        if (svc === 'turn_off' || (svc === 'set_percentage' && data.percentage === 0)) this.set(id, 'off', { percentage: 0 });
-        else if (svc === 'turn_on') this.set(id, 'on', { percentage: e.attributes.percentage || 50 });
-        else if (svc === 'set_percentage') this.set(id, 'on', { percentage: data.percentage });
-      } else if (d === 'switch') {
-        if (svc === 'turn_on' || svc === 'turn_off') this.set(id, svc === 'turn_on' ? 'on' : 'off');
-      } else if (d === 'cover') {
-        if (svc === 'open_cover') this.set(id, 'open', { current_position: 100 });
-        else if (svc === 'close_cover') this.set(id, 'closed', { current_position: 0 });
-        else if (svc === 'set_cover_position') this.set(id, data.position > 0 ? 'open' : 'closed', { current_position: data.position });
-      } else if (d === 'lock') {
-        if (svc === 'lock' || svc === 'unlock') this.set(id, svc === 'lock' ? 'locked' : 'unlocked');
-      } else if (d === 'climate') {
-        if (svc === 'set_temperature') this.set(id, e.state, { temperature: data.temperature, hvac_action: data.temperature > e.attributes.current_temperature && e.state === 'heat' ? 'heating' : 'idle' });
-        else if (svc === 'set_hvac_mode') this.set(id, data.hvac_mode, { hvac_action: data.hvac_mode === 'off' ? 'off' : 'idle' });
-      }
+      if (svc === 'turn_off' && d === 'climate') this.set(id, 'off', { hvac_action: 'off' });
+      else if (svc === 'turn_off') this.set(id, 'off', d === 'light' ? { brightness: null } : d === 'fan' ? { percentage: 0 } : {});
+      else if (svc === 'turn_on' && d === 'light') {
+        const dim = (e.attributes.supported_color_modes || []).some((m) => m !== 'onoff');
+        const a = {};
+        if (dim) a.brightness = data.brightness_pct != null ? Math.round(data.brightness_pct * 2.55) : e.attributes.brightness || 200;
+        if (data.rgb_color) Object.assign(a, { rgb_color: data.rgb_color, color_mode: 'hs' });
+        if (data.color_temp_kelvin) Object.assign(a, { color_mode: 'color_temp' });
+        this.set(id, 'on', a);
+      } else if (svc === 'turn_on') this.set(id, 'on');
+      else if (svc === 'set_value') this.set(id, data.value);
+      else if (svc === 'select_option') this.set(id, data.option);
+      else if (svc === 'set_percentage') this.set(id, data.percentage ? 'on' : 'off', { percentage: data.percentage });
+      else if (svc === 'open_cover') this.set(id, 'open', { current_position: 100 });
+      else if (svc === 'close_cover') this.set(id, 'closed', { current_position: 0 });
+      else if (svc === 'set_cover_position') this.set(id, data.position > 0 ? 'open' : 'closed', { current_position: data.position });
+      else if (svc === 'lock' || svc === 'unlock') this.set(id, svc === 'lock' ? 'locked' : 'unlocked');
+      else if (svc === 'set_temperature') this.set(id, e.state, { temperature: data.temperature });
+      else if (svc === 'set_hvac_mode') this.set(id, data.hvac_mode, { hvac_action: data.hvac_mode === 'off' ? 'off' : data.hvac_mode === 'cool' ? 'cooling' : data.hvac_mode === 'heat' ? 'heating' : 'idle' });
+      else if (svc === 'set_fan_mode') this.set(id, e.state, { fan_mode: data.fan_mode });
+      else if (svc === 'set_fan_speed') this.set(id, e.state, { fan_speed: data.fan_speed });
+      else if (svc === 'start') this.set(id, 'cleaning');
+      else if (svc === 'pause') this.set(id, 'paused');
+      else if (svc === 'stop') this.set(id, 'idle');
+      else if (svc === 'return_to_base') this.set(id, 'returning');
+      else if (svc === 'vacuum_clean_segment') this.set(id, 'cleaning');
     }
   }
 
